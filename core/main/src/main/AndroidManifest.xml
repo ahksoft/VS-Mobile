@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name="com.rk.UbuntuDocumentProvider"
+            android:authorities="${applicationId}.documents"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:icon="@mipmap/ic_launcher"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+        
+        <!-- WebView Activity (disabled - using webview session instead) -->
+        <activity
+            android:name="com.rk.terminal.ui.activities.webview.WebViewActivity"
+            android:exported="false"
+            android:enabled="false"
+            android:screenOrientation="user"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:hardwareAccelerated="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            
+        <!-- Browser with Eruda Activity -->
+        <activity
+            android:name="com.rk.terminal.ui.activities.BrowserActivity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+            
+        <!-- Shizuku Provider for elevated permissions -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+            
+       <!-- <service android:name="com.rk.runner.runners.web.html.HtmlRunner$DevTools"/> -->
+    </application>
+</manifest>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page Load Error</title>
+
+<script src="eruda.js"></script>
+
+<style>
+body {
+  background: #111;
+  color: #fff;
+  font-family: monospace;
+  padding: 20px;
+  margin: 0;
+}
+
+h2 {
+  color: #f48771;
+  margin-bottom: 20px;
+}
+
+#msg {
+  background: #222;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #f48771;
+  margin: 20px 0;
+  word-break: break-all;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>WebView Error</h2>
+
+<div id="msg">Loading error details...</div>
+
+<script>
+
+eruda.init({
+    useShadowDom: false,
+    autoScale: true,
+    defaults: {
+        displaySize: 50,
+        transparency: 0.9,
+        theme: 'Dark'
+    }
+});
+eruda.show();
+
+function setError(message) {
+    document.getElementById("msg").innerText = message;
+    console.error('WebView Error:', message);
+}
+
+console.log('Error page loaded with Eruda');
+
+</script>
+
+</body>
+</html>

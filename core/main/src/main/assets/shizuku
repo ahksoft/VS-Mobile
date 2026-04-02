@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Shizuku command wrapper for elevated permissions
+# Usage: shizuku <command>
+
+if [ "$SHIZUKU_AVAILABLE" = "1" ]; then
+    # Execute command with Shizuku elevated permissions
+    # This will be handled by the ShizukuHelper in the app
+    echo "Shizuku: $*" > /tmp/shizuku_command
+    echo "Command queued for Shizuku execution: $*"
+else
+    echo "Shizuku not available. Install and enable Shizuku app for elevated permissions."
+    echo "Regular execution: $*"
+    exec "$@"
+fi

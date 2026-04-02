@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            max-width: 500px;
+        }
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #b0b0b0;
+            margin-bottom: 30px;
+        }
+        .btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #005a9e;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+        }
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        .info {
+            margin-top: 30px;
+            padding: 15px;
+            background: #2d2d2d;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #888;
+        }
+        .hidden {
+            display: none;
+        }
+        .dev-info {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #555;
+        }
+        .dev-info a {
+            color: #007acc;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon"><img src="file:///android_asset/vsm.png" style="width:80px;height:80px;opacity:0.8;border-radius:12px;"></div>
+        <h1>vscode not running</h1>
+        <p id="message">Checking VS Code installation...</p>
+        <button class="btn btn-success" id="startBtn" onclick="startServer()">start vscode</button>
+        <button class="btn btn-warning hidden" id="installBtn" onclick="installResources()">Install Resources</button>
+        <div class="info" id="infoBox">
+            <strong>To start VS Code menually:</strong><br>
+            Run <code>vsc</code> in Terminal
+        </div>
+        <div class="dev-info">
+            Dev: Abir Hasan AHK &nbsp;|&nbsp; <a href="https://github.com/ahksoft">github.com/ahksoft</a>
+        </div>
+    </div>
+    <script>
+        function checkInstallation() {
+            if (window.OfflinePageInterface) {
+                const installed = window.OfflinePageInterface.checkPackagesInstalled();
+                const message = document.getElementById('message');
+                const startBtn = document.getElementById('startBtn');
+                const installBtn = document.getElementById('installBtn');
+                const infoBox = document.getElementById('infoBox');
+                
+                if (installed) {
+                    message.textContent = 'VS Code is installed. plaese start VS Code';
+                    startBtn.classList.remove('hidden');
+                    installBtn.classList.add('hidden');
+                    infoBox.classList.remove('hidden');
+                } else {
+                    message.textContent = 'VS Code not properly configured. Please install resources.';
+                    startBtn.classList.add('hidden');
+                    installBtn.classList.remove('hidden');
+                    infoBox.classList.add('hidden');
+                }
+            }
+        }
+        
+        function startServer() {
+            if (window.OfflinePageInterface) {
+                window.OfflinePageInterface.startServer();
+            }
+        }
+        
+        function installResources() {
+            if (window.OfflinePageInterface) {
+                window.OfflinePageInterface.installResources();
+            }
+        }
+        
+        // Check installation on load
+        checkInstallation();
+        
+        // Auto refresh - try to connect every 500ms (only on offline page)
+        setInterval(function() {
+            fetch('http://localhost:6862')
+                .then(() => {
+                    // Server is up, redirect
+                    window.location.href = 'http://localhost:6862';
+                })
+                .catch(() => {
+                    // Server still down, do nothing
+                });
+        }, 500);
+    </script>
+</body>
+</html>

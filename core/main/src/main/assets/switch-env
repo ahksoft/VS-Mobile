@@ -1,0 +1,74 @@
+#!/bin/bash
+#
+# Environment Switcher - Switch between PRoot and Chroot
+#
+
+show_help() {
+    echo -e "\e[35;1m[*] \e[0mEnvironment Switcher\e[0m"
+    echo -e "\e[36;1mUsage:\e[0m"
+    echo -e "  switch-env proot   - Switch to PRoot environment"
+    echo -e "  switch-env chroot  - Switch to Chroot environment (requires root)"
+    echo -e "  switch-env status  - Show current environment"
+    echo -e "  switch-env help    - Show this help"
+}
+
+show_status() {
+    echo -e "\e[35;1m[*] \e[0mCurrent Environment Status\e[0m"
+    
+    if [ -n "$CHROOT_MODE" ]; then
+        echo -e "\e[32;1m[✓] \e[0mCurrently in: Chroot Mode\e[0m"
+        echo -e "\e[36;1m[i] \e[0mRoot access: Available\e[0m"
+        echo -e "\e[36;1m[i] \e[0mFilesystem: Native chroot\e[0m"
+    else
+        echo -e "\e[32;1m[✓] \e[0mCurrently in: PRoot Mode\e[0m"
+        echo -e "\e[36;1m[i] \e[0mRoot access: Emulated\e[0m"
+        echo -e "\e[36;1m[i] \e[0mFilesystem: PRoot userspace\e[0m"
+    fi
+    
+    echo -e "\e[33;1m[i] \e[0mTo switch environments, use: switch-env [proot|chroot]\e[0m"
+}
+
+switch_to_proot() {
+    if [ -n "$CHROOT_MODE" ]; then
+        echo -e "\e[33;1m[!] \e[0mYou are currently in chroot mode\e[0m"
+        echo -e "\e[36;1m[i] \e[0mTo use PRoot, open a new terminal session\e[0m"
+        echo -e "\e[36;1m[i] \e[0mOr exit this chroot session with: exit\e[0m"
+    else
+        echo -e "\e[32;1m[✓] \e[0mAlready in PRoot mode\e[0m"
+        echo -e "\e[36;1m[i] \e[0mPRoot is the default environment\e[0m"
+    fi
+}
+
+switch_to_chroot() {
+    if [ -n "$CHROOT_MODE" ]; then
+        echo -e "\e[32;1m[✓] \e[0mAlready in Chroot mode\e[0m"
+    else
+        echo -e "\e[33;1m[*] \e[0mSwitching to Chroot environment...\e[0m"
+        echo -e "\e[36;1m[i] \e[0mThis will start a new chroot session\e[0m"
+        
+        if command -v chroot-ubuntu >/dev/null 2>&1; then
+            exec su -c 'chroot-ubuntu'
+        else
+            echo -e "\e[31;1m[✗] \e[0mChroot scripts not found\e[0m"
+            echo -e "\e[33;1m[i] \e[0mPlease install GUI mode first to get chroot support\e[0m"
+        fi
+    fi
+}
+
+case "$1" in
+    proot)
+        switch_to_proot
+        ;;
+    chroot)
+        switch_to_chroot
+        ;;
+    status)
+        show_status
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    *)
+        show_help
+        ;;
+esac

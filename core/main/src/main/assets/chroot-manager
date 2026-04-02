@@ -1,0 +1,145 @@
+#!/bin/bash
+#
+# Chroot Manager Script
+#
+
+ROOTFS_DIR="/data/data/com.rk.terminal.debug/files/usr"
+
+show_help() {
+    echo -e "\e[35;1m[*] \e[0mChroot Manager\e[0m"
+    echo -e "\e[36;1mUsage:\e[0m"
+    echo -e "  chroot-manager start    - Start chroot environment"
+    echo -e "  chroot-manager stop     - Stop chroot and cleanup mounts"
+    echo -e "  chroot-manager status   - Show chroot mount status"
+    echo -e "  chroot-manager shell    - Enter chroot shell"
+    echo -e "  chroot-manager help     - Show this help"
+}
+
+check_root() {
+    if [ "$(id -u)" -ne 0 ]; then
+        echo -e "\e[31;1m[✗] \e[0mRoot privileges required\e[0m"
+        echo -e "\e[33;1m[i] \e[0mTry: su -c 'chroot-manager $1'\e[0m"
+        exit 1
+    fi
+}
+
+check_rootfs() {
+    if [ ! -d "$ROOTFS_DIR" ]; then
+        echo -e "\e[31;1m[✗] \e[0mRootFS not found at $ROOTFS_DIR\e[0m"
+        echo -e "\e[33;1m[i] \e[0mPlease install Ubuntu environment first\e[0m"
+        exit 1
+    fi
+}
+
+mount_filesystems() {
+    echo -e "\e[33;1m[*] \e[0mMounting filesystems for chroot...\e[0m"
+    
+    # Create mount points
+    mkdir -p "$ROOTFS_DIR"/{proc,sys,dev/pts,tmp}
+    
+    # Mount filesystems
+    mount -t proc proc "$ROOTFS_DIR/proc" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/proc mounted\e[0m"
+    mount -t sysfs sysfs "$ROOTFS_DIR/sys" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/sys mounted\e[0m"
+    mount --bind /dev "$ROOTFS_DIR/dev" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/dev mounted\e[0m"
+    mount -t devpts devpts "$ROOTFS_DIR/dev/pts" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/dev/pts mounted\e[0m"
+    mount -t tmpfs tmpfs "$ROOTFS_DIR/tmp" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/tmp mounted\e[0m"
+    
+    # Copy network configuration
+    cp /etc/resolv.conf "$ROOTFS_DIR/etc/resolv.conf" 2>/dev/null
+    
+    echo -e "\e[32;1m[✓] \e[0mChroot environment ready\e[0m"
+}
+
+unmount_filesystems() {
+    echo -e "\e[33;1m[*] \e[0mUnmounting chroot filesystems...\e[0m"
+    
+    umount "$ROOTFS_DIR/dev/pts" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/dev/pts unmounted\e[0m"
+    umount "$ROOTFS_DIR/dev" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/dev unmounted\e[0m"
+    umount "$ROOTFS_DIR/proc" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/proc unmounted\e[0m"
+    umount "$ROOTFS_DIR/sys" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/sys unmounted\e[0m"
+    umount "$ROOTFS_DIR/tmp" 2>/dev/null && echo -e "\e[32;1m[✓] \e[0m/tmp unmounted\e[0m"
+    
+    echo -e "\e[32;1m[✓] \e[0mChroot cleanup completed\e[0m"
+}
+
+show_status() {
+    echo -e "\e[35;1m[*] \e[0mChroot Mount Status\e[0m"
+    
+    if mountpoint -q "$ROOTFS_DIR/proc"; then
+        echo -e "\e[32;1m[✓] \e[0m/proc is mounted\e[0m"
+    else
+        echo -e "\e[31;1m[✗] \e[0m/proc is not mounted\e[0m"
+    fi
+    
+    if mountpoint -q "$ROOTFS_DIR/sys"; then
+        echo -e "\e[32;1m[✓] \e[0m/sys is mounted\e[0m"
+    else
+        echo -e "\e[31;1m[✗] \e[0m/sys is not mounted\e[0m"
+    fi
+    
+    if mountpoint -q "$ROOTFS_DIR/dev"; then
+        echo -e "\e[32;1m[✓] \e[0m/dev is mounted\e[0m"
+    else
+        echo -e "\e[31;1m[✗] \e[0m/dev is not mounted\e[0m"
+    fi
+    
+    if mountpoint -q "$ROOTFS_DIR/dev/pts"; then
+        echo -e "\e[32;1m[✓] \e[0m/dev/pts is mounted\e[0m"
+    else
+        echo -e "\e[31;1m[✗] \e[0m/dev/pts is not mounted\e[0m"
+    fi
+    
+    if mountpoint -q "$ROOTFS_DIR/tmp"; then
+        echo -e "\e[32;1m[✓] \e[0m/tmp is mounted\e[0m"
+    else
+        echo -e "\e[31;1m[✗] \e[0m/tmp is not mounted\e[0m"
+    fi
+}
+
+enter_chroot() {
+    echo -e "\e[36;1m[i] \e[0mEntering chroot environment...\e[0m"
+    
+    # Set environment
+    export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    export HOME="/root"
+    export USER="root"
+    export LOGNAME="root"
+    export SHELL="/bin/bash"
+    export TERM="${TERM:-xterm-256color}"
+    
+    chroot "$ROOTFS_DIR" /bin/bash -l
+    
+    echo -e "\e[33;1m[*] \e[0mExited chroot environment\e[0m"
+}
+
+case "$1" in
+    start)
+        check_root "start"
+        check_rootfs
+        mount_filesystems
+        ;;
+    stop)
+        check_root "stop"
+        unmount_filesystems
+        ;;
+    status)
+        show_status
+        ;;
+    shell)
+        check_root "shell"
+        check_rootfs
+        
+        # Auto-mount if not mounted
+        if ! mountpoint -q "$ROOTFS_DIR/proc"; then
+            mount_filesystems
+        fi
+        
+        enter_chroot
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    *)
+        show_help
+        ;;
+esac
