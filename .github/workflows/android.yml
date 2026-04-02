@@ -46,7 +46,7 @@ jobs:
       - name: Archive APK
         uses: actions/upload-artifact@v4
         with:
-          name: Karbon-Release
+          name: VS-Mobile-v1.2.1-Release
           path: app/vs-mobile-${{ env.COMMIT_HASH }}.apk
 
       - name: Delete xed.keystore and signing.properties
