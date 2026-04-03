@@ -510,7 +510,21 @@ fun TerminalScreen(
                                 // Check if current session is webview or desktop
                                 val isWebViewSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "webview"
                                 val isDesktopSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "desktop"
-                                
+
+                                // Launch DesktopActivity when desktop session is selected
+                                LaunchedEffect(isDesktopSession) {
+                                    if (isDesktopSession) {
+                                        val intent = android.content.Intent(
+                                            mainActivityActivity,
+                                            com.rk.terminal.ui.activities.desktop.DesktopActivity::class.java
+                                        )
+                                        mainActivityActivity.startActivity(intent)
+                                        // Switch back to webview after launching
+                                        mainActivityActivity.sessionBinder?.getService()?.currentSession?.value =
+                                            Pair("webview", -1)
+                                    }
+                                }
+
                                 // Always keep WebView in composition, just hide it
                                 Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                                     // VS Code WebView
@@ -529,25 +543,8 @@ fun TerminalScreen(
                                         }
                                     }
 
-                                    // Desktop WebView
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .alpha(if (isDesktopSession) 1f else 0f)
-                                            .zIndex(if (isDesktopSession) 1f else -1f)
-                                    ) {
-                                        androidx.compose.runtime.key("desktop_session") {
-                                            WebViewSession(
-                                                modifier = Modifier.fillMaxSize(),
-                                                mainActivity = mainActivityActivity,
-                                                reloadTrigger = webViewReloadTrigger,
-                                                overrideUrl = "file:///android_asset/desktop.html"
-                                            )
-                                        }
-                                    }
-                                    
                                     // Terminal - only rendered when active
-                                    if (!isWebViewSession && !isDesktopSession) {
+                                    if (!isWebViewSession) {
                                         Column(modifier = Modifier.fillMaxSize()) {
                                 AndroidView(
                                     factory = { context ->

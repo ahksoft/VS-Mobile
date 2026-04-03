@@ -1,52 +1,16 @@
 #!/bin/bash
-# Desktop environment using WebX11 (direct X11 → WebSocket streaming)
+# Start Xfce desktop using termux-x11 as the X server
+# termux-x11 renders directly to Android SurfaceView - no VNC/WebView needed
 
-WEBX11_PORT=8080
-
-install_desktop() {
-    echo "[*] Installing dependencies..."
-    DEBIAN_FRONTEND=noninteractive apt update -qq
-    DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-        xfce4 xfce4-terminal xvfb dbus-x11 xfonts-base \
-        python3 python3-pip git \
-        2>/dev/null
-
-    echo "[*] Installing Python deps..."
-    pip3 install --quiet --break-system-packages \
-        "Pillow>=9.0.0" "python-xlib>=0.31" "websockets>=10.0" 2>/dev/null
-
-    echo "[*] Installing WebX11..."
-    rm -rf /opt/webx11
-    git clone --depth=1 https://github.com/lp1dev/WebX11.git /opt/webx11 2>/dev/null
-
-    pip3 install --quiet --break-system-packages --no-deps -e /opt/webx11 2>/dev/null
-
-    if python3 -c "import webx11" 2>/dev/null; then
-        echo "[✓] WebX11 installed"
-    else
-        echo "[✗] WebX11 install failed"
-        exit 1
-    fi
-
-    touch ~/.desktop_installed
-}
+DISPLAY_NUM=0
 
 start_desktop() {
     pkill -f "xfce4-session" 2>/dev/null
-    pkill -f "webx11.server" 2>/dev/null
-    pkill -f "Xvfb :1" 2>/dev/null
+    pkill -f "termux-x11" 2>/dev/null
     sleep 1
 
-    # Always patch webtransport.py stub
-    [ -f /opt/webx11/webx11/webtransport.py ] && cat > /opt/webx11/webx11/webtransport.py << 'STUB'
-# WebTransport disabled (aioquic not available)
-async def run_webtransport_server(*args, **kwargs):
-    pass
-STUB
-
     export NO_AT_BRIDGE=1
-    export LIBGL_ALWAYS_SOFTWARE=1
-    export DISPLAY=:1
+    export DISPLAY=:$DISPLAY_NUM
 
     # Disable xfwm4 compositing
     mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
@@ -59,47 +23,37 @@ STUB
 </channel>
 EOF
 
-    # Start Xvfb
-    Xvfb :1 -screen 0 1280x800x24 -ac &
-    sleep 2
+    # Set XKB config root for proot
+    export XKB_CONFIG_ROOT=/usr/share/X11/xkb
+    export TMPDIR=/tmp
 
-    # Start dbus
-    eval $(dbus-launch --sh-syntax 2>/dev/null) || true
+    # Start termux-x11 X server (runs as Android app_process)
+    # This sends ACTION_START broadcast to open the X11 display Activity
+    export CLASSPATH=$(pm path com.termux.x11 2>/dev/null | cut -d: -f2)
 
-    # Start Xfce
-    startxfce4 &
-    sleep 4
-
-    # WebX11 config (websocket only)
-    cat > /tmp/webx11.json << EOF
-{
-    "transport": "websocket",
-    "image_quality": 80,
-    "max_width": 1920,
-    "max_height": 1080,
-    "max_fps": 24,
-    "resize_mode": "resize-x11",
-    "host": "127.0.0.1",
-    "image_format": "WEBP",
-    "can_start_executables": false
-}
-EOF
-
-    # Start WebX11
-    python3 -m webx11.server --settings /tmp/webx11.json 2>&1 | tee /tmp/webx11.log &
-    sleep 3
-
-    if pgrep -f "webx11.server" > /dev/null; then
-        echo "[✓] Desktop running on http://localhost:$WEBX11_PORT"
-        echo "Switch to Desktop tab in VS Mobile"
-    else
-        echo "[✗] WebX11 failed:"
-        cat /tmp/webx11.log
+    if [ -z "$CLASSPATH" ]; then
+        echo "[✗] termux-x11 not installed. Open Desktop tab in VS Mobile to install it first."
         exit 1
     fi
+
+    echo "[*] Starting termux-x11 X server..."
+    /system/bin/app_process / com.termux.x11.CmdEntryPoint :$DISPLAY_NUM &
+    sleep 2
+
+    echo "[*] Starting Xfce desktop..."
+    dbus-launch --exit-with-session xfce4-session &
+
+    echo "[✓] Desktop started on DISPLAY=:$DISPLAY_NUM"
+    echo "The X11 display window should open automatically."
+    wait
 }
 
-[ ! -f ~/.desktop_installed ] && install_desktop
+# Install Xfce if needed
+if ! command -v xfce4-session &>/dev/null; then
+    echo "[*] Installing Xfce..."
+    DEBIAN_FRONTEND=noninteractive apt update -qq
+    DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+        xfce4 xfce4-terminal dbus-x11 xfonts-base 2>/dev/null
+fi
 
 start_desktop
-wait
