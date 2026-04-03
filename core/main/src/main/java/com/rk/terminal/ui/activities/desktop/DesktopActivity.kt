@@ -1,6 +1,6 @@
 package com.rk.terminal.ui.activities.desktop
 
-import android.app.Activity
+import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.os.Bundle
@@ -8,9 +8,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 class DesktopActivity : AppCompatActivity() {
 
@@ -21,30 +21,19 @@ class DesktopActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        if (isTermuxX11Installed()) {
-            launchX11()
-        } else {
-            installAndLaunch()
-        }
+        if (isInstalled()) launchX11() else installAndLaunch()
     }
 
-    private fun isTermuxX11Installed(): Boolean {
-        return try {
-            packageManager.getPackageInfo(TERMUX_X11_PKG, 0)
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
+    private fun isInstalled() = try {
+        packageManager.getPackageInfo(TERMUX_X11_PKG, 0); true
+    } catch (e: Exception) { false }
 
     private fun launchX11() {
         try {
-            val intent = Intent().apply {
+            startActivity(Intent().apply {
                 setClassName(TERMUX_X11_PKG, TERMUX_X11_ACTIVITY)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
+            })
         } catch (e: Exception) {
             Toast.makeText(this, "Failed to launch X11: ${e.message}", Toast.LENGTH_LONG).show()
         }
@@ -52,48 +41,34 @@ class DesktopActivity : AppCompatActivity() {
     }
 
     private fun installAndLaunch() {
-        Toast.makeText(this, "Installing X11 display server...", Toast.LENGTH_SHORT).show()
-
+        Toast.makeText(this, "Installing Termux:X11...", Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
-            val success = withContext(Dispatchers.IO) {
-                installApk()
-            }
-            if (success) {
-                // Wait a moment for install to complete
-                kotlinx.coroutines.delay(2000)
-                launchX11()
+            val ok = withContext(Dispatchers.IO) { installApk() }
+            if (ok) {
+                delay(3000) // wait for install to complete
+                if (isInstalled()) launchX11()
+                else Toast.makeText(this@DesktopActivity,
+                    "Install Termux:X11 manually from Settings > Install unknown apps", Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(this@DesktopActivity,
-                    "X11 install failed. Install termux-x11 manually.", Toast.LENGTH_LONG).show()
-                finish()
+                    "Install failed. Enable 'Install unknown apps' permission.", Toast.LENGTH_LONG).show()
             }
+            finish()
         }
     }
 
-    private fun installApk(): Boolean {
-        return try {
-            val apkBytes = assets.open("termux-x11.apk").readBytes()
-            val installer = packageManager.packageInstaller
-            val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
-            val sessionId = installer.createSession(params)
-            val session = installer.openSession(sessionId)
-
-            session.openWrite("termux-x11.apk", 0, apkBytes.size.toLong()).use { out ->
-                out.write(apkBytes)
-                session.fsync(out)
-            }
-
-            val intent = Intent(this, DesktopActivity::class.java)
-            val pi = android.app.PendingIntent.getActivity(
-                this, 0, intent,
-                android.app.PendingIntent.FLAG_MUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
-            )
+    private fun installApk(): Boolean = try {
+        val bytes = assets.open("termux-x11.apk").readBytes()
+        val installer = packageManager.packageInstaller
+        val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+        val sessionId = installer.createSession(params)
+        installer.openSession(sessionId).use { session ->
+            session.openWrite("termux-x11.apk", 0, bytes.size.toLong()).use { it.write(bytes); session.fsync(it) }
+            val pi = PendingIntent.getActivity(this, 0,
+                Intent(this, DesktopActivity::class.java),
+                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             session.commit(pi.intentSender)
-            session.close()
-            true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
         }
-    }
+        true
+    } catch (e: Exception) { e.printStackTrace(); false }
 }

@@ -201,6 +201,19 @@ tasks.register("downloadPrebuilt") {
     }
 }
 
+tasks.register("copyTermuxX11Apk") {
+    doLast {
+        val src = File("${rootProject.projectDir}/termux-x11/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk")
+        val dst = File("${projectDir}/../core/main/src/main/assets/termux-x11.apk")
+        if (src.exists()) {
+            src.copyTo(dst, overwrite = true)
+            println("Copied termux-x11 APK to assets")
+        } else {
+            println("termux-x11 APK not found, skipping copy")
+        }
+    }
+}
+
 afterEvaluate {
     android.applicationVariants.all { variant ->
         variant.javaCompileProvider.dependsOn("downloadPrebuilt")

@@ -1,20 +1,60 @@
 #!/bin/bash
-# Start Xfce desktop using termux-x11 as the X server
-# termux-x11 renders directly to Android SurfaceView - no VNC/WebView needed
+# Start Xfce4 desktop using Termux:X11 as the display server
+# Based on: https://github.com/LinuxDroidMaster/Termux-Desktops
 
-DISPLAY_NUM=0
+# ── Install Xfce if needed ────────────────────────────────────────────────────
+if ! command -v xfce4-session &>/dev/null; then
+    echo "[*] Installing Xfce4 desktop environment..."
+    # Block snap (can't run in proot)
+    mkdir -p /etc/apt/preferences.d
+    cat > /etc/apt/preferences.d/nosnap.pref << 'EOF'
+Package: snapd
+Pin: release a=*
+Pin-Priority: -10
+EOF
+    DEBIAN_FRONTEND=noninteractive apt update -qq
+    DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+        xfce4 xfce4-terminal xfce4-goodies \
+        dbus-x11 xfonts-base \
+        2>/dev/null
+    echo "[✓] Xfce4 installed"
+fi
 
-start_desktop() {
-    pkill -f "xfce4-session" 2>/dev/null
-    pkill -f "termux-x11" 2>/dev/null
-    sleep 1
+# ── Kill existing X11 processes ───────────────────────────────────────────────
+kill -9 $(pgrep -f "termux.x11") 2>/dev/null
+kill -9 $(pgrep -f "xfce4-session") 2>/dev/null
+sleep 1
 
-    export NO_AT_BRIDGE=1
-    export DISPLAY=:$DISPLAY_NUM
+# ── Start Termux:X11 X server ─────────────────────────────────────────────────
+# termux-x11 binary is provided by the Termux:X11 app via app_process
+export CLASSPATH=$(pm path com.termux.x11 2>/dev/null | cut -d: -f2)
 
-    # Disable xfwm4 compositing
-    mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
-    cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
+if [ -z "$CLASSPATH" ]; then
+    echo "[✗] Termux:X11 not installed."
+    echo "    Open the Desktop tab in VS Mobile to install it, then run 'desktop' again."
+    exit 1
+fi
+
+export XDG_RUNTIME_DIR=${TMPDIR:-/tmp}
+export DISPLAY=:0
+
+echo "[*] Starting Termux:X11 X server on :0..."
+/system/bin/app_process / com.termux.x11.CmdEntryPoint :0 >/dev/null 2>&1 &
+sleep 3
+
+# ── Launch Termux:X11 display Activity ───────────────────────────────────────
+echo "[*] Opening X11 display window..."
+am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity >/dev/null 2>&1
+sleep 1
+
+# ── Start Xfce4 session ───────────────────────────────────────────────────────
+echo "[*] Starting Xfce4 session on DISPLAY=:0..."
+export NO_AT_BRIDGE=1
+export LIBGL_ALWAYS_SOFTWARE=1
+
+# Disable compositing (not supported in proot)
+mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
+cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfwm4" version="1.0">
   <property name="general" type="empty">
@@ -23,37 +63,7 @@ start_desktop() {
 </channel>
 EOF
 
-    # Set XKB config root for proot
-    export XKB_CONFIG_ROOT=/usr/share/X11/xkb
-    export TMPDIR=/tmp
+dbus-launch --exit-with-session startxfce4 &
 
-    # Start termux-x11 X server (runs as Android app_process)
-    # This sends ACTION_START broadcast to open the X11 display Activity
-    export CLASSPATH=$(pm path com.termux.x11 2>/dev/null | cut -d: -f2)
-
-    if [ -z "$CLASSPATH" ]; then
-        echo "[✗] termux-x11 not installed. Open Desktop tab in VS Mobile to install it first."
-        exit 1
-    fi
-
-    echo "[*] Starting termux-x11 X server..."
-    /system/bin/app_process / com.termux.x11.CmdEntryPoint :$DISPLAY_NUM &
-    sleep 2
-
-    echo "[*] Starting Xfce desktop..."
-    dbus-launch --exit-with-session xfce4-session &
-
-    echo "[✓] Desktop started on DISPLAY=:$DISPLAY_NUM"
-    echo "The X11 display window should open automatically."
-    wait
-}
-
-# Install Xfce if needed
-if ! command -v xfce4-session &>/dev/null; then
-    echo "[*] Installing Xfce..."
-    DEBIAN_FRONTEND=noninteractive apt update -qq
-    DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-        xfce4 xfce4-terminal dbus-x11 xfonts-base 2>/dev/null
-fi
-
-start_desktop
+echo "[✓] Desktop started. Switch to the X11 window."
+wait
