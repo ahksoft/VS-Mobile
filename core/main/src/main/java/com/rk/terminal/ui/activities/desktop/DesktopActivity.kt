@@ -1,40 +1,80 @@
 package com.rk.terminal.ui.activities.desktop
 
-import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageInstaller
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import androidx.core.content.FileProvider
+import java.io.File
 
 class DesktopActivity : AppCompatActivity() {
 
     companion object {
         const val TERMUX_X11_PKG = "com.termux.x11"
         const val TERMUX_X11_ACTIVITY = "com.termux.x11.MainActivity"
-        const val ACTION_INSTALL_DONE = "com.rk.terminal.INSTALL_DONE"
-    }
-
-    // Receiver just to absorb the install callback — no relaunch
-    class InstallReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {}
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (isInstalled()) launchX11() else installAndLaunch()
+
+        when {
+            // Already installed — launch it
+            isInstalled() -> launchX11()
+
+            // Need permission to install unknown apps
+            !packageManager.canRequestPackageInstalls() -> askInstallPermission()
+
+            // Has permission — install
+            else -> installApk()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Check again after returning from permission settings
+        if (isInstalled()) { launchX11(); return }
+        if (packageManager.canRequestPackageInstalls()) installApk()
     }
 
     private fun isInstalled() = try {
         packageManager.getPackageInfo(TERMUX_X11_PKG, 0); true
     } catch (e: Exception) { false }
+
+    private fun askInstallPermission() {
+        AlertDialog.Builder(this)
+            .setTitle("Permission Required")
+            .setMessage("VS Mobile needs permission to install Termux:X11 (the X11 display server).")
+            .setPositiveButton("Allow") { _, _ ->
+                startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:$packageName")))
+            }
+            .setNegativeButton("Cancel") { _, _ -> finish() }
+            .show()
+    }
+
+    private fun installApk() {
+        try {
+            // Copy APK from assets to cache
+            val apkFile = File(cacheDir, "termux-x11.apk")
+            assets.open("termux-x11.apk").use { input ->
+                apkFile.outputStream().use { input.copyTo(it) }
+            }
+
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", apkFile)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Install failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+        finish()
+    }
 
     private fun launchX11() {
         try {
@@ -47,47 +87,4 @@ class DesktopActivity : AppCompatActivity() {
         }
         finish()
     }
-
-    private fun installAndLaunch() {
-        Toast.makeText(this, "Installing Termux:X11...", Toast.LENGTH_SHORT).show()
-        lifecycleScope.launch {
-            val ok = withContext(Dispatchers.IO) { installApk() }
-            if (ok) {
-                // Poll until installed (max 15s)
-                repeat(15) {
-                    delay(1000)
-                    if (isInstalled()) { launchX11(); return@launch }
-                }
-                Toast.makeText(this@DesktopActivity,
-                    "Install may need approval. Check notifications.", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(this@DesktopActivity,
-                    "Install failed. Enable 'Install unknown apps' in Settings.", Toast.LENGTH_LONG).show()
-            }
-            finish()
-        }
-    }
-
-    private fun installApk(): Boolean = try {
-        val bytes = assets.open("termux-x11.apk").readBytes()
-        val installer = packageManager.packageInstaller
-
-        // Abandon stale sessions
-        installer.mySessions.forEach { runCatching { installer.abandonSession(it.sessionId) } }
-
-        val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
-        val sessionId = installer.createSession(params)
-        installer.openSession(sessionId).use { session ->
-            session.openWrite("termux-x11.apk", 0, bytes.size.toLong())
-                .use { it.write(bytes); session.fsync(it) }
-            // Use broadcast receiver to avoid relaunching DesktopActivity
-            val pi = PendingIntent.getBroadcast(
-                this, 0,
-                Intent(ACTION_INSTALL_DONE).setPackage(packageName),
-                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-            session.commit(pi.intentSender)
-        }
-        true
-    } catch (e: Exception) { e.printStackTrace(); false }
 }
