@@ -107,12 +107,16 @@ object MkSession {
                 }
             }
 
-            // Copy desktop launcher
-            localBinDir().child("desktop").apply {
-                createFileIfNot()
-                writeText(assets.open("desktop.sh").bufferedReader().use { it.readText() })
-                setExecutable(true)
-            }
+            // Copy desktop launcher into Ubuntu rootfs
+            ubuntuHomeDir().parentFile!!  // ubuntu dir
+                .let { File(it, "usr/local/bin") }
+                .also { it.mkdirs() }
+                .let { File(it, "desktop") }
+                .apply {
+                    createFileIfNot()
+                    writeText(assets.open("desktop.sh").bufferedReader().use { it.readText() })
+                    setExecutable(true)
+                }
 
 
 
