@@ -307,6 +307,63 @@ fun Settings(modifier: Modifier = Modifier,navController: NavController,mainActi
             )
         }
 
+        // Desktop Environment settings
+        var desktopEnabled by remember { mutableStateOf(Settings.desktop_enabled) }
+        PreferenceGroup(heading = "Desktop Environment") {
+            SettingsToggle(
+                label = "Enable Desktop Environment",
+                description = "Show Desktop session tab (requires Xfce4 + x11vnc)",
+                showSwitch = true,
+                default = desktopEnabled,
+                sideEffect = {
+                    desktopEnabled = it
+                    Settings.desktop_enabled = it
+                }
+            )
+            if (desktopEnabled) {
+                var vncHost by remember { mutableStateOf(Settings.vnc_host) }
+                var vncPort by remember { mutableStateOf(Settings.vnc_port.toString()) }
+                var vncPass by remember { mutableStateOf(Settings.vnc_password) }
+                var showDialog by remember { mutableStateOf<String?>(null) }
+                var dialogValue by remember { mutableStateOf("") }
+
+                // Dialog for editing text values
+                if (showDialog != null) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showDialog = null },
+                        title = { Text(showDialog!!) },
+                        text = {
+                            androidx.compose.material3.OutlinedTextField(
+                                value = dialogValue,
+                                onValueChange = { dialogValue = it },
+                                singleLine = true
+                            )
+                        },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = {
+                                when (showDialog) {
+                                    "VNC Host" -> { vncHost = dialogValue; Settings.vnc_host = dialogValue }
+                                    "VNC Port" -> { vncPort = dialogValue; Settings.vnc_port = dialogValue.toIntOrNull() ?: 5905 }
+                                    "VNC Password" -> { vncPass = dialogValue; Settings.vnc_password = dialogValue }
+                                }
+                                showDialog = null
+                            }) { Text("OK") }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { showDialog = null }) { Text("Cancel") }
+                        }
+                    )
+                }
+
+                SettingsToggle(label = "VNC Host", description = vncHost, showSwitch = false, default = false,
+                    sideEffect = { dialogValue = vncHost; showDialog = "VNC Host" })
+                SettingsToggle(label = "VNC Port", description = vncPort, showSwitch = false, default = false,
+                    sideEffect = { dialogValue = vncPort; showDialog = "VNC Port" })
+                SettingsToggle(label = "VNC Password", description = "••••••", showSwitch = false, default = false,
+                    sideEffect = { dialogValue = vncPass; showDialog = "VNC Password" })
+            }
+        }
+
         PreferenceGroup {
             SettingsToggle(
                 label = "Shizuku Integration",

@@ -121,6 +121,22 @@ object Settings {
         get() = Preference.getBoolean(key = "force_soft_keyboard", default = true)
         set(value) = Preference.setBoolean(key = "force_soft_keyboard",value)
 
+    var desktop_enabled
+        get() = Preference.getBoolean(key = "desktop_enabled", default = false)
+        set(value) = Preference.setBoolean(key = "desktop_enabled", value)
+
+    var vnc_host
+        get() = Preference.getString(key = "vnc_host", default = "localhost")
+        set(value) = Preference.setString(key = "vnc_host", value)
+
+    var vnc_port
+        get() = Preference.getInt(key = "vnc_port", default = 5905)
+        set(value) = Preference.setInt(key = "vnc_port", value)
+
+    var vnc_password
+        get() = Preference.getString(key = "vnc_password", default = "123456")
+        set(value) = Preference.setString(key = "vnc_password", value)
+
 
 
 }

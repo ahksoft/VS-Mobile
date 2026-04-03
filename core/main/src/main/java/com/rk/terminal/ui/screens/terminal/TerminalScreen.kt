@@ -511,15 +511,35 @@ fun TerminalScreen(
                                 val isWebViewSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "webview"
                                 val isDesktopSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "desktop"
 
-                                // Launch VncViewerActivity when desktop session is selected
+                                // Auto-run desktop and poll VNC when desktop session selected
                                 LaunchedEffect(isDesktopSession) {
                                     if (isDesktopSession) {
-                                        mainActivityActivity.startActivity(
-                                            android.content.Intent(
-                                                mainActivityActivity,
-                                                com.rk.terminal.ui.activities.vnc.VncViewerActivity::class.java
-                                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        )
+                                        // Write 'desktop' command to current terminal session if one exists
+                                        val currentId = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first
+                                        val session = if (currentId != null && currentId != "desktop")
+                                            mainActivityActivity.sessionBinder?.getSession(currentId) else null
+                                        val cmd = "desktop\n".toByteArray()
+                                        session?.write(cmd, 0, cmd.size)
+
+                                        // Wait 5s then poll VNC for up to 25s
+                                        kotlinx.coroutines.delay(5000)
+                                        repeat(25) {
+                                            try {
+                                                java.net.Socket().use { s ->
+                                                    s.connect(java.net.InetSocketAddress(
+                                                        com.rk.settings.Settings.vnc_host,
+                                                        com.rk.settings.Settings.vnc_port), 500)
+                                                }
+                                                com.gaurav.avnc.VncLauncher.launch(
+                                                    context = mainActivityActivity,
+                                                    host = com.rk.settings.Settings.vnc_host,
+                                                    port = com.rk.settings.Settings.vnc_port,
+                                                    password = com.rk.settings.Settings.vnc_password
+                                                )
+                                                return@LaunchedEffect
+                                            } catch (_: Exception) {}
+                                            kotlinx.coroutines.delay(1000)
+                                        }
                                     }
                                 }
 
