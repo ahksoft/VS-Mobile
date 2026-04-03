@@ -15,18 +15,15 @@ install_desktop() {
         2>/dev/null
 
     echo "[*] Installing WebX11 dependencies..."
-    pip3 install --quiet --break-system-packages \
+    pip3 install --quiet --break-system-packages --ignore-installed \
         "Pillow>=9.0.0" "python-xlib>=0.31" "websockets>=10.0" 2>&1
 
     echo "[*] Installing WebX11..."
-    pip3 install --quiet --break-system-packages \
-        git+https://github.com/lp1dev/WebX11.git 2>&1
-
-    if ! python3 -c "import webx11" 2>/dev/null; then
-        echo "[✗] WebX11 install failed, trying manual clone..."
-        git clone --depth=1 https://github.com/lp1dev/WebX11.git /opt/webx11 2>/dev/null
-        pip3 install --quiet --break-system-packages -e /opt/webx11 2>&1
-    fi
+    # Clone manually to avoid aioquic/cryptography conflict
+    rm -rf /opt/webx11
+    git clone --depth=1 https://github.com/lp1dev/WebX11.git /opt/webx11 2>&1
+    pip3 install --quiet --break-system-packages --ignore-installed \
+        --no-deps -e /opt/webx11 2>&1
 
     touch ~/.desktop_installed
     echo "[✓] Desktop installed"
