@@ -35,16 +35,13 @@ if [ -z "$CLASSPATH" ]; then
     exit 1
 fi
 
-export XDG_RUNTIME_DIR=${TMPDIR:-/tmp}
 export DISPLAY=:0
+export TMPDIR=/tmp
+export XDG_RUNTIME_DIR=/tmp
 
 echo "[*] Starting Termux:X11 X server on :0..."
-/system/bin/app_process / com.termux.x11.CmdEntryPoint :0 >/dev/null 2>&1 &
-sleep 3
-
-# ── Launch Termux:X11 display Activity ───────────────────────────────────────
-echo "[*] Opening X11 display window..."
-am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity >/dev/null 2>&1
+# startx11 uses #!/system/bin/sh so it runs on Android host outside proot
+startx11
 sleep 1
 
 # ── Start Xfce4 session ───────────────────────────────────────────────────────

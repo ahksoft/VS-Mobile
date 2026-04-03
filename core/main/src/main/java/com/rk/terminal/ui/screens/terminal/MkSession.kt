@@ -114,6 +114,13 @@ object MkSession {
                 setExecutable(true)
             }
 
+            // Copy host-side X11 starter (runs app_process outside proot)
+            localBinDir().child("startx11").apply {
+                createFileIfNot()
+                writeText(assets.open("startx11.sh").bufferedReader().use { it.readText() })
+                setExecutable(true)
+            }
+
 
 
             val env = mutableListOf(
