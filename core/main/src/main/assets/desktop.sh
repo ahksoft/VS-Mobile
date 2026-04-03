@@ -59,6 +59,7 @@ EOF
         -noxdamage \
         -noxfixes \
         -noipv6 \
+        -noshm \
         2>/tmp/x11vnc.log &
     sleep 3
 
