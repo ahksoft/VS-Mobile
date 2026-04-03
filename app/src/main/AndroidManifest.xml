@@ -46,6 +46,14 @@
             android:name="com.rk.terminal.ui.activities.desktop.DesktopActivity"
             android:exported="false" />
 
+        <receiver
+            android:name="com.rk.terminal.ui.activities.desktop.DesktopActivity$InstallReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.rk.terminal.INSTALL_DONE" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
