@@ -318,6 +318,19 @@ fun Settings(modifier: Modifier = Modifier,navController: NavController,mainActi
                 sideEffect = {
                     desktopEnabled = it
                     Settings.desktop_enabled = it
+                    // Ask to restart app
+                    androidx.appcompat.app.AlertDialog.Builder(context)
+                        .setTitle("Restart Required")
+                        .setMessage("Please restart VS Mobile for changes to take effect.")
+                        .setPositiveButton("Restart") { _, _ ->
+                            val pm = context.packageManager
+                            val intent = pm.getLaunchIntentForPackage(context.packageName)
+                            intent?.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            context.startActivity(intent)
+                            android.os.Process.killProcess(android.os.Process.myPid())
+                        }
+                        .setNegativeButton("Later", null)
+                        .show()
                 }
             )
             if (desktopEnabled) {

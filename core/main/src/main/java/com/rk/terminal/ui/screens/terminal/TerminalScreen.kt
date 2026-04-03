@@ -514,12 +514,14 @@ fun TerminalScreen(
                                 // Auto-run desktop and poll VNC when desktop session selected
                                 LaunchedEffect(isDesktopSession) {
                                     if (isDesktopSession) {
-                                        // Write 'desktop' command to current terminal session if one exists
-                                        val currentId = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first
-                                        val session = if (currentId != null && currentId != "desktop")
-                                            mainActivityActivity.sessionBinder?.getSession(currentId) else null
+                                        // Find first terminal session and run 'desktop' in it
+                                        val sessions = mainActivityActivity.sessionBinder?.getService()?.sessionList?.keys
+                                        val terminalId = sessions?.firstOrNull { it != "webview" && it != "desktop" }
+                                        val termSession = terminalId?.let {
+                                            mainActivityActivity.sessionBinder?.getSession(it)
+                                        }
                                         val cmd = "desktop\n".toByteArray()
-                                        session?.write(cmd, 0, cmd.size)
+                                        termSession?.write(cmd, 0, cmd.size)
 
                                         // Wait 5s then poll VNC for up to 25s
                                         kotlinx.coroutines.delay(5000)
