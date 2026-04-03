@@ -511,13 +511,13 @@ fun TerminalScreen(
                                 val isWebViewSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "webview"
                                 val isDesktopSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "desktop"
 
-                                // Launch DesktopActivity when desktop session is selected
+                                // Launch VncViewerActivity when desktop session is selected
                                 LaunchedEffect(isDesktopSession) {
                                     if (isDesktopSession) {
                                         mainActivityActivity.startActivity(
                                             android.content.Intent(
                                                 mainActivityActivity,
-                                                com.rk.terminal.ui.activities.desktop.DesktopActivity::class.java
+                                                com.rk.terminal.ui.activities.vnc.VncViewerActivity::class.java
                                             ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                                         )
                                     }

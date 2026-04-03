@@ -43,7 +43,11 @@
             android:foregroundServiceType="specialUse" />
 
         <activity
-            android:name="com.rk.terminal.ui.activities.desktop.DesktopActivity"
+            android:name="com.rk.terminal.ui.activities.vnc.VncViewerActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.rk.terminal.ui.activities.vnc.IntegratedVncActivity"
             android:exported="false" />
 
         <provider

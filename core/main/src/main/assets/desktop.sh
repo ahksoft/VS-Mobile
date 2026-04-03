@@ -1,10 +1,13 @@
 #!/bin/bash
-# Start Xfce4 desktop - X server is started by VS Mobile app (DesktopActivity)
-# Run this AFTER tapping Desktop tab in VS Mobile
+# Start Xfce4 desktop with x11vnc for VNC access
+# Tap Desktop tab in VS Mobile to open the VNC viewer
 
-# ── Install Xfce if needed ────────────────────────────────────────────────────
-if ! command -v xfce4-session &>/dev/null; then
-    echo "[*] Installing Xfce4..."
+VNC_PORT=5905
+VNC_PASS="123456"
+
+# ── Install if needed ─────────────────────────────────────────────────────────
+if ! command -v xfce4-session &>/dev/null || ! command -v x11vnc &>/dev/null; then
+    echo "[*] Installing Xfce4 + x11vnc..."
     mkdir -p /etc/apt/preferences.d
     cat > /etc/apt/preferences.d/nosnap.pref << 'EOF'
 Package: snapd
@@ -13,19 +16,19 @@ Pin-Priority: -10
 EOF
     DEBIAN_FRONTEND=noninteractive apt update -qq
     DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-        xfce4 xfce4-terminal dbus-x11 xfonts-base 2>/dev/null
-    echo "[✓] Xfce4 installed"
+        xfce4 xfce4-terminal x11vnc xvfb dbus-x11 xfonts-base 2>/dev/null
+    echo "[✓] Installed"
 fi
 
-# ── Kill existing Xfce session ────────────────────────────────────────────────
-kill -9 $(pgrep -f "xfce4-session") 2>/dev/null
+# ── Kill existing sessions ────────────────────────────────────────────────────
+pkill -f "Xvfb :5" 2>/dev/null
+pkill -f "x11vnc" 2>/dev/null
+pkill -f "xfce4-session" 2>/dev/null
 sleep 1
 
-export DISPLAY=:0
-export TMPDIR=/tmp
-export XDG_RUNTIME_DIR=/tmp
 export NO_AT_BRIDGE=1
 export LIBGL_ALWAYS_SOFTWARE=1
+export DISPLAY=:5
 
 # Disable compositing
 mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
@@ -38,7 +41,28 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
 </channel>
 EOF
 
-echo "[*] Starting Xfce4 on DISPLAY=:0..."
-echo "[!] Make sure you tapped Desktop tab first to start the X server"
+# ── Start Xvfb ────────────────────────────────────────────────────────────────
+Xvfb :5 -screen 0 1280x720x24 -ac &
+sleep 2
 
-dbus-launch --exit-with-session startxfce4
+# ── Start Xfce ────────────────────────────────────────────────────────────────
+dbus-launch --exit-with-session startxfce4 &
+sleep 4
+
+# ── Start x11vnc ─────────────────────────────────────────────────────────────
+x11vnc -display :5 \
+    -rfbport $VNC_PORT \
+    -passwd "$VNC_PASS" \
+    -forever \
+    -shared \
+    -noshm \
+    -noxdamage \
+    -noxfixes \
+    -noipv6 \
+    -listen 127.0.0.1 \
+    -quiet &
+
+sleep 1
+echo "[✓] Desktop running on VNC port $VNC_PORT (password: $VNC_PASS)"
+echo "Tap Desktop tab in VS Mobile to connect"
+wait

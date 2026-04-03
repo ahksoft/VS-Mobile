@@ -103,6 +103,7 @@ dependencies {
     api(project(":core:resources"))
     api(project(":core:components"))
     api(project(":webview-virtualmouse-plugin"))
+    api(project(":vnc:app"))
     
     // Shizuku for elevated permissions
     implementation("dev.rikka.shizuku:api:13.1.5")
