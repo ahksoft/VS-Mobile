@@ -19,11 +19,6 @@ install_desktop() {
     rm -rf /opt/webx11
     git clone --depth=1 https://github.com/lp1dev/WebX11.git /opt/webx11 2>/dev/null
 
-    # Replace broken webtransport.py (requires aioquic which we don't have)
-    cat > /opt/webx11/webx11/webtransport.py << 'STUB'
-# WebTransport disabled (aioquic not available)
-STUB
-
     pip3 install --quiet --break-system-packages --no-deps -e /opt/webx11 2>/dev/null
 
     if python3 -c "import webx11" 2>/dev/null; then
@@ -41,6 +36,13 @@ start_desktop() {
     pkill -f "webx11.server" 2>/dev/null
     pkill -f "Xvfb :1" 2>/dev/null
     sleep 1
+
+    # Always patch webtransport.py stub
+    [ -f /opt/webx11/webx11/webtransport.py ] && cat > /opt/webx11/webx11/webtransport.py << 'STUB'
+# WebTransport disabled (aioquic not available)
+async def run_webtransport_server(*args, **kwargs):
+    pass
+STUB
 
     export NO_AT_BRIDGE=1
     export LIBGL_ALWAYS_SOFTWARE=1
