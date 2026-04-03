@@ -59,7 +59,7 @@
     <iframe id="novnc-frame" src="" allow="clipboard-read; clipboard-write; fullscreen" allowfullscreen></iframe>
 
     <script>
-        const NOVNC_URL = 'http://localhost:8080';
+        const NOVNC_URL = 'http://localhost:8080/display/1';
         let attempts = 0;
 
         function openDesktop() {
@@ -70,16 +70,22 @@
         }
 
         function checkServer() {
-            fetch('http://localhost:6080/')
-                .then(r => {
-                    if (r.ok || r.status === 200 || r.status === 404) {
+            fetch('http://localhost:8080/displays')
+                .then(r => r.json())
+                .then(displays => {
+                    if (displays && displays.length > 0) {
                         document.getElementById('spinner').classList.add('hidden');
                         document.getElementById('title').textContent = 'Desktop Ready';
                         document.getElementById('msg').textContent = 'Xfce desktop is running';
                         document.getElementById('openBtn').classList.remove('hidden');
-                        // Auto open after short delay
-                        setTimeout(openDesktop, 800);
-                    } else { retry(); }
+                        setTimeout(openDesktop, 500);
+                    } else {
+                        fetch('http://localhost:8080/display', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({width: 1280, height: 800})
+                        }).catch(() => {}).finally(() => setTimeout(checkServer, 1500));
+                    }
                 })
                 .catch(() => retry());
         }
