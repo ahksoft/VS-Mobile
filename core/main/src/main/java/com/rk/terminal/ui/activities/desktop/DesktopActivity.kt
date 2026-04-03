@@ -60,6 +60,10 @@ class DesktopActivity : AppCompatActivity() {
     private fun installApk(): Boolean = try {
         val bytes = assets.open("termux-x11.apk").readBytes()
         val installer = packageManager.packageInstaller
+
+        // Abandon any leftover sessions from previous attempts
+        installer.mySessions.forEach { runCatching { installer.abandonSession(it.sessionId) } }
+
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         val sessionId = installer.createSession(params)
         installer.openSession(sessionId).use { session ->
