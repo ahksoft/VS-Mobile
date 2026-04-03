@@ -361,8 +361,8 @@ fun TerminalScreen(
                         }
 
                         mainActivityActivity.sessionBinder?.getService()?.sessionList?.keys?.toList()?.let { sessions ->
-                            // Sort so webview is always first
-                            val sortedSessions = sessions.sortedBy { if (it == "webview") 0 else 1 }
+                            // Sort so webview is always first, desktop second
+                            val sortedSessions = sessions.sortedBy { when(it) { "webview" -> 0; "desktop" -> 1; else -> 2 } }
                             LazyColumn {
                                 items(sortedSessions) { session_id ->
                                     SelectableCard(
@@ -382,14 +382,18 @@ fun TerminalScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = if (session_id == "webview") "VS Code" else session_id,
+                                                text = when (session_id) {
+                                                    "webview" -> "VS Code"
+                                                    "desktop" -> "Desktop"
+                                                    else -> session_id
+                                                },
                                                 style = MaterialTheme.typography.bodyLarge
                                             )
 
                                             Spacer(modifier = Modifier.weight(1f))
 
-                                            // Show reload button for webview
-                                            if (session_id == "webview") {
+                                            // Show reload button for webview and desktop
+                                            if (session_id == "webview" || session_id == "desktop") {
                                                 IconButton(
                                                     onClick = {
                                                         webViewReloadTrigger++
@@ -404,8 +408,8 @@ fun TerminalScreen(
                                                 }
                                             }
 
-                                            // Hide delete button for webview and current session
-                                            if (session_id != "webview" && session_id != mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first) {
+                                            // Hide delete button for webview, desktop and current session
+                                            if (session_id != "webview" && session_id != "desktop" && session_id != mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first) {
 
                                                 IconButton(
                                                     onClick = {
@@ -503,12 +507,13 @@ fun TerminalScreen(
                                     TopAppBarDefaults.windowInsets.getTop(density).toDp()
                                 }
                             })) {
-                                // Check if current session is webview
+                                // Check if current session is webview or desktop
                                 val isWebViewSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "webview"
+                                val isDesktopSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "desktop"
                                 
                                 // Always keep WebView in composition, just hide it
                                 Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                                    // WebView - always in composition, visibility controlled
+                                    // VS Code WebView
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
@@ -523,9 +528,26 @@ fun TerminalScreen(
                                             )
                                         }
                                     }
+
+                                    // Desktop WebView
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .alpha(if (isDesktopSession) 1f else 0f)
+                                            .zIndex(if (isDesktopSession) 1f else -1f)
+                                    ) {
+                                        androidx.compose.runtime.key("desktop_session") {
+                                            WebViewSession(
+                                                modifier = Modifier.fillMaxSize(),
+                                                mainActivity = mainActivityActivity,
+                                                reloadTrigger = webViewReloadTrigger,
+                                                overrideUrl = "file:///android_asset/desktop.html"
+                                            )
+                                        }
+                                    }
                                     
                                     // Terminal - only rendered when active
-                                    if (!isWebViewSession) {
+                                    if (!isWebViewSession && !isDesktopSession) {
                                         Column(modifier = Modifier.fillMaxSize()) {
                                 AndroidView(
                                     factory = { context ->

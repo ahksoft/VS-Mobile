@@ -27,6 +27,7 @@ class SessionService : Service() {
     // Add webview session on init
     init {
         sessionList["webview"] = -1 // -1 indicates webview session
+        sessionList["desktop"] = -2 // -2 indicates desktop session
     }
 
     inner class SessionBinder : Binder() {

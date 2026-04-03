@@ -117,7 +117,7 @@ private fun injectKeyboardEvent(
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, reloadTrigger: Int = 0) {
+fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, reloadTrigger: Int = 0, overrideUrl: String? = null) {
     val context = LocalContext.current
     var webView by remember { mutableStateOf<VSCodeBrowser?>(null) }
     var virtualMouse by remember { mutableStateOf<VirtualMouse?>(null) }
@@ -519,7 +519,7 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
                         }
                         
                         // Load URL
-                        loadUrl("http://${Settings.webview_url}:${Settings.webview_port}")
+                        loadUrl(overrideUrl ?: "http://${Settings.webview_url}:${Settings.webview_port}")
                     }
                     
                     addView(enhancedWebView, ConstraintLayout.LayoutParams(
