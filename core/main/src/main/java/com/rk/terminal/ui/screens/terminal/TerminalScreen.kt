@@ -514,14 +514,12 @@ fun TerminalScreen(
                                 // Launch DesktopActivity when desktop session is selected
                                 LaunchedEffect(isDesktopSession) {
                                     if (isDesktopSession) {
-                                        val intent = android.content.Intent(
-                                            mainActivityActivity,
-                                            com.rk.terminal.ui.activities.desktop.DesktopActivity::class.java
+                                        mainActivityActivity.startActivity(
+                                            android.content.Intent(
+                                                mainActivityActivity,
+                                                com.rk.terminal.ui.activities.desktop.DesktopActivity::class.java
+                                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                                         )
-                                        mainActivityActivity.startActivity(intent)
-                                        // Switch back to webview after launching
-                                        mainActivityActivity.sessionBinder?.getService()?.currentSession?.value =
-                                            Pair("webview", -1)
                                     }
                                 }
 
