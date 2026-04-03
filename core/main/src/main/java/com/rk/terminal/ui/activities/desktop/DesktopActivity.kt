@@ -7,7 +7,11 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class DesktopActivity : AppCompatActivity() {
@@ -19,29 +23,61 @@ class DesktopActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         when {
-            // Already installed — launch it
-            isInstalled() -> launchX11()
-
-            // Need permission to install unknown apps
+            isInstalled() -> startX11AndLaunch()
             !packageManager.canRequestPackageInstalls() -> askInstallPermission()
-
-            // Has permission — install
             else -> installApk()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        // Check again after returning from permission settings
-        if (isInstalled()) { launchX11(); return }
+        if (isInstalled()) { startX11AndLaunch(); return }
         if (packageManager.canRequestPackageInstalls()) installApk()
     }
 
     private fun isInstalled() = try {
         packageManager.getPackageInfo(TERMUX_X11_PKG, 0); true
     } catch (e: Exception) { false }
+
+    private fun startX11AndLaunch() {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    // Get termux-x11 APK path for CLASSPATH
+                    val apkPath = packageManager.getApplicationInfo(TERMUX_X11_PKG, 0).sourceDir
+
+                    // Kill existing X server
+                    Runtime.getRuntime().exec("kill -9 \$(pgrep -f termux.x11)").waitFor()
+                    delay(500)
+
+                    // Start X server on Android host (not inside proot)
+                    val env = arrayOf(
+                        "CLASSPATH=$apkPath",
+                        "PATH=/system/bin:/system/xbin"
+                    )
+                    Runtime.getRuntime().exec(
+                        arrayOf("/system/bin/app_process", "/", "com.termux.x11.CmdEntryPoint", ":0"),
+                        env
+                    )
+                    delay(2000)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            // Launch termux-x11 display Activity
+            try {
+                startActivity(Intent().apply {
+                    setClassName(TERMUX_X11_PKG, TERMUX_X11_ACTIVITY)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+            } catch (e: Exception) {
+                Toast.makeText(this@DesktopActivity, "Launch failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+            finish()
+        }
+    }
 
     private fun askInstallPermission() {
         AlertDialog.Builder(this)
@@ -57,33 +93,16 @@ class DesktopActivity : AppCompatActivity() {
 
     private fun installApk() {
         try {
-            // Copy APK from assets to cache
             val apkFile = File(cacheDir, "termux-x11.apk")
-            assets.open("termux-x11.apk").use { input ->
-                apkFile.outputStream().use { input.copyTo(it) }
-            }
-
-            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", apkFile)
-            val intent = Intent(Intent.ACTION_VIEW).apply {
+            assets.open("termux-x11.apk").use { it.copyTo(apkFile.outputStream()) }
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                this, "$packageName.fileprovider", apkFile)
+            startActivity(Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-        } catch (e: Exception) {
-            Toast.makeText(this, "Install failed: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-        finish()
-    }
-
-    private fun launchX11() {
-        try {
-            startActivity(Intent().apply {
-                setClassName(TERMUX_X11_PKG, TERMUX_X11_ACTIVITY)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
             })
         } catch (e: Exception) {
-            Toast.makeText(this, "Failed to launch X11: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Install failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
         finish()
     }

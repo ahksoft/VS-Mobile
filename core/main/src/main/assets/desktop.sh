@@ -1,11 +1,10 @@
 #!/bin/bash
-# Start Xfce4 desktop using Termux:X11 as the display server
-# Based on: https://github.com/LinuxDroidMaster/Termux-Desktops
+# Start Xfce4 desktop - X server is started by VS Mobile app (DesktopActivity)
+# Run this AFTER tapping Desktop tab in VS Mobile
 
 # ── Install Xfce if needed ────────────────────────────────────────────────────
 if ! command -v xfce4-session &>/dev/null; then
-    echo "[*] Installing Xfce4 desktop environment..."
-    # Block snap (can't run in proot)
+    echo "[*] Installing Xfce4..."
     mkdir -p /etc/apt/preferences.d
     cat > /etc/apt/preferences.d/nosnap.pref << 'EOF'
 Package: snapd
@@ -14,53 +13,21 @@ Pin-Priority: -10
 EOF
     DEBIAN_FRONTEND=noninteractive apt update -qq
     DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-        xfce4 xfce4-terminal xfce4-goodies \
-        dbus-x11 xfonts-base \
-        2>/dev/null
+        xfce4 xfce4-terminal dbus-x11 xfonts-base 2>/dev/null
     echo "[✓] Xfce4 installed"
 fi
 
-# ── Kill existing X11 processes ───────────────────────────────────────────────
-kill -9 $(pgrep -f "termux.x11") 2>/dev/null
+# ── Kill existing Xfce session ────────────────────────────────────────────────
 kill -9 $(pgrep -f "xfce4-session") 2>/dev/null
 sleep 1
-
-# ── Start Termux:X11 X server ─────────────────────────────────────────────────
-# termux-x11 binary is provided by the Termux:X11 app via app_process
-export CLASSPATH=$(pm path com.termux.x11 2>/dev/null | cut -d: -f2)
-
-if [ -z "$CLASSPATH" ]; then
-    echo "[✗] Termux:X11 not installed."
-    echo "    Open the Desktop tab in VS Mobile to install it, then run 'desktop' again."
-    exit 1
-fi
 
 export DISPLAY=:0
 export TMPDIR=/tmp
 export XDG_RUNTIME_DIR=/tmp
-
-echo "[*] Starting Termux:X11 X server on :0..."
-# Find startx11 in same dir as this script (localBinDir)
-SCRIPT_DIR=$(dirname "$0")
-if [ -x "$SCRIPT_DIR/startx11" ]; then
-    "$SCRIPT_DIR/startx11"
-else
-    # Fallback: call directly
-    export CLASSPATH=$(pm path com.termux.x11 2>/dev/null | cut -d: -f2)
-    [ -z "$CLASSPATH" ] && echo "[✗] Termux:X11 not installed" && exit 1
-    kill -9 $(pgrep -f "termux.x11") 2>/dev/null
-    /system/bin/app_process / com.termux.x11.CmdEntryPoint :0 &
-    sleep 2
-    am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity >/dev/null 2>&1
-fi
-sleep 1
-
-# ── Start Xfce4 session ───────────────────────────────────────────────────────
-echo "[*] Starting Xfce4 session on DISPLAY=:0..."
 export NO_AT_BRIDGE=1
 export LIBGL_ALWAYS_SOFTWARE=1
 
-# Disable compositing (not supported in proot)
+# Disable compositing
 mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
 cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -71,7 +38,7 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
 </channel>
 EOF
 
-dbus-launch --exit-with-session startxfce4 &
+echo "[*] Starting Xfce4 on DISPLAY=:0..."
+echo "[!] Make sure you tapped Desktop tab first to start the X server"
 
-echo "[✓] Desktop started. Switch to the X11 window."
-wait
+dbus-launch --exit-with-session startxfce4
