@@ -40,8 +40,19 @@ export TMPDIR=/tmp
 export XDG_RUNTIME_DIR=/tmp
 
 echo "[*] Starting Termux:X11 X server on :0..."
-# startx11 uses #!/system/bin/sh so it runs on Android host outside proot
-startx11
+# Find startx11 in same dir as this script (localBinDir)
+SCRIPT_DIR=$(dirname "$0")
+if [ -x "$SCRIPT_DIR/startx11" ]; then
+    "$SCRIPT_DIR/startx11"
+else
+    # Fallback: call directly
+    export CLASSPATH=$(pm path com.termux.x11 2>/dev/null | cut -d: -f2)
+    [ -z "$CLASSPATH" ] && echo "[✗] Termux:X11 not installed" && exit 1
+    kill -9 $(pgrep -f "termux.x11") 2>/dev/null
+    /system/bin/app_process / com.termux.x11.CmdEntryPoint :0 &
+    sleep 2
+    am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity >/dev/null 2>&1
+fi
 sleep 1
 
 # ── Start Xfce4 session ───────────────────────────────────────────────────────
