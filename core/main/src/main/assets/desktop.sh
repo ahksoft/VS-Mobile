@@ -19,9 +19,25 @@ install_desktop() {
         "Pillow>=9.0.0" "python-xlib>=0.31" "websockets>=10.0" 2>&1
 
     echo "[*] Installing WebX11..."
-    # Clone manually to avoid aioquic/cryptography conflict
     rm -rf /opt/webx11
     git clone --depth=1 https://github.com/lp1dev/WebX11.git /opt/webx11 2>&1
+
+    # Patch webtransport.py bug (H3Event used without aioquic)
+    python3 - << 'PYEOF'
+import re
+path = '/opt/webx11/webx11/webtransport.py'
+with open(path, 'r') as f:
+    content = f.read()
+# Wrap the class in a try/except so it only defines when aioquic is available
+content = content.replace(
+    'class WebTransportHandler:',
+    'try:\n    H3Event\nexcept NameError:\n    H3Event = object\nclass WebTransportHandler:'
+)
+with open(path, 'w') as f:
+    f.write(content)
+print("Patched webtransport.py")
+PYEOF
+
     pip3 install --quiet --break-system-packages --ignore-installed \
         --no-deps -e /opt/webx11 2>&1
 
