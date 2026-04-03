@@ -59,27 +59,33 @@
     <iframe id="novnc-frame" src="" allow="clipboard-read; clipboard-write; fullscreen" allowfullscreen></iframe>
 
     <script>
-        const NOVNC_URL = 'http://localhost:6080/vnc.html?autoconnect=true&resize=scale&quality=6&compression=2';
         let attempts = 0;
 
         function openDesktop() {
             document.getElementById('status').style.display = 'none';
             const frame = document.getElementById('novnc-frame');
             frame.style.display = 'block';
-            frame.src = NOVNC_URL;
+            frame.src = 'http://localhost:8080/display/1';
         }
 
         function checkServer() {
-            fetch('http://localhost:6080/')
-                .then(r => {
-                    if (r.ok || r.status === 200 || r.status === 404) {
+            fetch('http://localhost:8080/displays')
+                .then(r => r.json())
+                .then(displays => {
+                    if (displays && displays.length > 0) {
                         document.getElementById('spinner').classList.add('hidden');
                         document.getElementById('title').textContent = 'Desktop Ready';
                         document.getElementById('msg').textContent = 'Xfce desktop is running';
                         document.getElementById('openBtn').classList.remove('hidden');
-                        // Auto open after short delay
-                        setTimeout(openDesktop, 800);
-                    } else { retry(); }
+                        setTimeout(openDesktop, 500);
+                    } else {
+                        // Create display
+                        fetch('http://localhost:8080/display', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({width: 1280, height: 800})
+                        }).catch(() => {}).finally(() => setTimeout(checkServer, 1500));
+                    }
                 })
                 .catch(() => retry());
         }
@@ -97,13 +103,7 @@
             setTimeout(checkServer, 1000);
         }
 
-        // Start checking
         setTimeout(checkServer, 2000);
-
-        // Start desktop via OfflinePageInterface if available
-        if (window.OfflinePageInterface && window.OfflinePageInterface.startDesktop) {
-            window.OfflinePageInterface.startDesktop();
-        }
     </script>
 </body>
 </html>
