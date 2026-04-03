@@ -11,7 +11,7 @@ install_desktop() {
     # Install Xpra from official repo (includes xpra-html5)
     apt install -y --no-install-recommends wget gnupg ca-certificates 2>/dev/null
     wget -qO /usr/share/keyrings/xpra.asc https://xpra.org/xpra.asc 2>/dev/null
-    echo "deb [signed-by=/usr/share/keyrings/xpra.asc] https://xpra.org/dists/bookworm/ ./" \
+    echo "deb [signed-by=/usr/share/keyrings/xpra.asc arch=arm64] https://xpra.org/dists/bookworm main" \
         > /etc/apt/sources.list.d/xpra.list
     apt update -qq 2>/dev/null
 
