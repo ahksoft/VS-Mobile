@@ -59,7 +59,7 @@
     <iframe id="novnc-frame" src="" allow="clipboard-read; clipboard-write; fullscreen" allowfullscreen></iframe>
 
     <script>
-        const NOVNC_URL = 'http://localhost:14500/';
+        const NOVNC_URL = 'http://localhost:6080/vnc.html?autoconnect=true&resize=scale&quality=6&compression=2';
         let attempts = 0;
 
         function openDesktop() {
@@ -70,14 +70,15 @@
         }
 
         function checkServer() {
-            fetch('http://localhost:14500/')
+            fetch('http://localhost:6080/')
                 .then(r => {
-                    if (r.ok || r.status === 200 || r.status === 401) {
+                    if (r.ok || r.status === 200 || r.status === 404) {
                         document.getElementById('spinner').classList.add('hidden');
                         document.getElementById('title').textContent = 'Desktop Ready';
                         document.getElementById('msg').textContent = 'Xfce desktop is running';
                         document.getElementById('openBtn').classList.remove('hidden');
-                        setTimeout(openDesktop, 500);
+                        // Auto open after short delay
+                        setTimeout(openDesktop, 800);
                     } else { retry(); }
                 })
                 .catch(() => retry());
