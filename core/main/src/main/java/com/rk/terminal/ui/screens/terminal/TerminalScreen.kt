@@ -511,21 +511,24 @@ fun TerminalScreen(
                                 val isWebViewSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "webview"
                                 val isDesktopSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "desktop"
 
-                                // Auto-run desktop and poll VNC when desktop session selected
+                                // Desktop tab: set pendingCommand to run 'desktop', terminal view handles the rest
                                 LaunchedEffect(isDesktopSession) {
                                     if (isDesktopSession) {
-                                        // Find first terminal session and run 'desktop' in it
-                                        val sessions = mainActivityActivity.sessionBinder?.getService()?.sessionList?.keys
-                                        val terminalId = sessions?.firstOrNull { it != "webview" && it != "desktop" }
-                                        val termSession = terminalId?.let {
-                                            mainActivityActivity.sessionBinder?.getSession(it)
+                                        // Only set pending command if no desktop session running yet
+                                        if (mainActivityActivity.sessionBinder?.getSession("desktop") == null) {
+                                            val initFile = com.rk.libcommons.localBinDir().child("init-host")
+                                            com.rk.libcommons.pendingCommand = com.rk.libcommons.TerminalCommand(
+                                                ubuntu = true,
+                                                shell = "/system/bin/sh",
+                                                args = arrayOf("-c", "${initFile.absolutePath} desktop"),
+                                                id = "desktop",
+                                                workingMode = WorkingMode.UBUNTU,
+                                                workingDir = com.rk.libcommons.ubuntuHomeDir().path
+                                            )
                                         }
-                                        val cmd = "desktop\n".toByteArray()
-                                        termSession?.write(cmd, 0, cmd.size)
 
-                                        // Wait 5s then poll VNC for up to 25s
-                                        kotlinx.coroutines.delay(5000)
-                                        repeat(25) {
+                                        // Poll VNC for up to 60s then launch viewer
+                                        repeat(60) {
                                             try {
                                                 java.net.Socket().use { s ->
                                                     s.connect(java.net.InetSocketAddress(
@@ -563,7 +566,7 @@ fun TerminalScreen(
                                         }
                                     }
 
-                                    // Terminal - only rendered when active
+                                    // Terminal - only rendered when active (including desktop session)
                                     if (!isWebViewSession) {
                                         Column(modifier = Modifier.fillMaxSize()) {
                                 AndroidView(
