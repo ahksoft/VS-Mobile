@@ -8,27 +8,26 @@ install_desktop() {
     echo "[*] Installing Xpra + Xfce..."
     DEBIAN_FRONTEND=noninteractive apt update -qq
 
-    # Add Xpra repo for latest version
-    apt install -y --no-install-recommends wget gnupg 2>/dev/null
-    wget -qO /usr/share/keyrings/xpra.asc https://xpra.org/xpra.asc 2>/dev/null || true
-    echo "deb [signed-by=/usr/share/keyrings/xpra.asc] https://xpra.org/dists/bookworm/ ./"\
-        > /etc/apt/sources.list.d/xpra.list 2>/dev/null || true
-    apt update -qq 2>/dev/null || true
+    # Install Xpra from official repo (includes xpra-html5)
+    apt install -y --no-install-recommends wget gnupg ca-certificates 2>/dev/null
+    wget -qO /usr/share/keyrings/xpra.asc https://xpra.org/xpra.asc 2>/dev/null
+    echo "deb [signed-by=/usr/share/keyrings/xpra.asc] https://xpra.org/dists/bookworm/ ./" \
+        > /etc/apt/sources.list.d/xpra.list
+    apt update -qq 2>/dev/null
 
     DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
         xpra xpra-html5 \
         xfce4 xfce4-terminal \
         xvfb dbus-x11 xfonts-base \
-        python3 \
         2>/dev/null
 
-    # Fallback if xpra repo fails
-    if ! command -v xpra &>/dev/null; then
-        echo "[*] Trying apt xpra..."
-        DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-            xpra xpra-html5 2>/dev/null || \
-        DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-            xpra 2>/dev/null
+    # If xpra-html5 still missing, download it manually
+    if [ ! -f /usr/share/xpra/www/index.html ]; then
+        echo "[*] Installing xpra-html5 manually..."
+        wget -qO /tmp/xpra-html5.deb \
+            "https://xpra.org/dists/bookworm/main/binary-arm64/xpra-html5_latest.deb" 2>/dev/null || \
+        apt-get download xpra-html5 -o Dir::Cache=/tmp 2>/dev/null
+        dpkg -i /tmp/xpra-html5*.deb 2>/dev/null || true
     fi
 
     touch ~/.desktop_installed
@@ -53,7 +52,7 @@ start_desktop() {
     xpra start :$DISPLAY_NUM \
         --bind-tcp=127.0.0.1:$XPRA_PORT \
         --html=on \
-        --start="startxfce4" \
+        --start-child="xfce4-session" \
         --exit-with-children=no \
         --daemon=no \
         --no-mdns \
