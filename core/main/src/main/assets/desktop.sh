@@ -14,18 +14,24 @@ install_desktop() {
 
     DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
         xpra \
-        xfce4 xfce4-terminal \
+        xfce4 xfce4-terminal openbox \
         xvfb dbus-x11 xfonts-base \
         wget python3 \
         2>/dev/null
 
-    # Install xpra-html5 from Xpra's direct deb
+    # Install xpra-html5 deb directly (Ubuntu's xpra package has outdated www files)
+    echo "[*] Installing xpra-html5..."
+    wget -qO /tmp/xpra-html5.deb \
+        "https://xpra.org/dists/bookworm/main/binary-arm64/xpra-html5-8.1-r6-1.deb" 2>&1
+    if [ -f /tmp/xpra-html5.deb ]; then
+        dpkg -i /tmp/xpra-html5.deb 2>/dev/null || apt-get install -f -y -qq 2>/dev/null || true
+    fi
+    # Verify
     if [ ! -f /usr/share/xpra/www/index.html ]; then
-        echo "[*] Installing xpra-html5..."
+        echo "[!] xpra-html5 install failed, trying all.deb..."
         wget -qO /tmp/xpra-html5.deb \
-            "https://xpra.org/dists/bookworm/main/binary-arm64/xpra-html5-8.1-r6-1.deb" 2>&1 || true
-        dpkg -i /tmp/xpra-html5.deb 2>/dev/null || \
-        apt-get install -f -y 2>/dev/null || true
+            "https://xpra.org/dists/bookworm/main/binary-all/xpra-html5-8.1-r6-1.deb" 2>&1 || true
+        dpkg -i /tmp/xpra-html5.deb 2>/dev/null || true
     fi
 
     touch ~/.desktop_installed
@@ -50,8 +56,7 @@ start_desktop() {
     xpra start :$DISPLAY_NUM \
         --bind-tcp=127.0.0.1:$XPRA_PORT \
         --html=on \
-        --start-child="xfce4-session" \
-        --exit-with-children=no \
+        --start="env XFWM4_DISABLE_COMPOSITOR=1 xfce4-session" \
         --daemon=no \
         --no-mdns \
         --pulseaudio=no \
@@ -61,9 +66,8 @@ start_desktop() {
         --printing=no \
         --file-transfer=no \
         --opengl=no \
-        --encoding=webp \
+        --encoding=png \
         --quality=75 \
-        --speed=75 \
         2>&1 | tee /tmp/xpra.log &
 
     sleep 3
