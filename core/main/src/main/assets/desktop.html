@@ -56,7 +56,7 @@
         <button class="btn hidden" id="openBtn" onclick="openDesktop()">Open Desktop</button>
         <button class="btn hidden" id="retryBtn" onclick="location.reload()">Retry</button>
     </div>
-    <iframe id="novnc-frame" src="" allow="clipboard-read; clipboard-write"></iframe>
+    <iframe id="novnc-frame" src="" allow="clipboard-read; clipboard-write; fullscreen" allowfullscreen></iframe>
 
     <script>
         const NOVNC_URL = 'http://localhost:6080/vnc.html?autoconnect=true&resize=scale&quality=6&compression=2';

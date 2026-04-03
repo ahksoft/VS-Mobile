@@ -292,7 +292,7 @@ fun TerminalScreen(
 
                     SettingsCard(
                         title = { Text("Android") },
-                        description = {Text("ReTerminal Android shell")},
+                        description = {Text("VS Mobile Android shell")},
                         onClick = {
                             createSession(workingMode = WorkingMode.ANDROID)
                             showAddDialog = false

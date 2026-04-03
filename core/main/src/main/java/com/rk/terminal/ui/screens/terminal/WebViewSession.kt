@@ -359,6 +359,7 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
                         isLongClickable = false
                         
                         // Inject JavaScript keyboard bridge
+                        webChromeClient = VSCodeWebChromeClient(activity = mainActivity)
                         webViewClient = object : WebViewClient() {
                             override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
                                 super.onPageFinished(view, url)
