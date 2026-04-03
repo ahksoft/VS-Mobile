@@ -62,6 +62,7 @@ if [ ! -d "$PREFIX/local/ubuntu/tmp" ]; then
  chmod 1777 "$PREFIX/local/ubuntu/tmp"
 fi
 ARGS="$ARGS -b $PREFIX/local/ubuntu/tmp:/dev/shm"
+ARGS="$ARGS -b $TMPDIR:/tmp"
 
 ARGS="$ARGS -r $PREFIX/local/ubuntu"
 ARGS="$ARGS -0"
