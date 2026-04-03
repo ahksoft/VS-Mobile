@@ -6,28 +6,26 @@ DISPLAY_NUM=10
 
 install_desktop() {
     echo "[*] Installing Xpra + Xfce..."
+
+    # Remove old/broken xpra repo
+    rm -f /etc/apt/sources.list.d/xpra.list
+
     DEBIAN_FRONTEND=noninteractive apt update -qq
 
-    # Install Xpra from official repo (includes xpra-html5)
-    apt install -y --no-install-recommends wget gnupg ca-certificates 2>/dev/null
-    wget -qO /usr/share/keyrings/xpra.asc https://xpra.org/xpra.asc 2>/dev/null
-    echo "deb [signed-by=/usr/share/keyrings/xpra.asc arch=arm64] https://xpra.org/dists/bookworm main" \
-        > /etc/apt/sources.list.d/xpra.list
-    apt update -qq 2>/dev/null
-
     DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-        xpra xpra-html5 \
+        xpra \
         xfce4 xfce4-terminal \
         xvfb dbus-x11 xfonts-base \
+        wget python3 \
         2>/dev/null
 
-    # If xpra-html5 still missing, download it manually
+    # Install xpra-html5 from Xpra's direct deb
     if [ ! -f /usr/share/xpra/www/index.html ]; then
-        echo "[*] Installing xpra-html5 manually..."
+        echo "[*] Installing xpra-html5..."
         wget -qO /tmp/xpra-html5.deb \
-            "https://xpra.org/dists/bookworm/main/binary-arm64/xpra-html5_latest.deb" 2>/dev/null || \
-        apt-get download xpra-html5 -o Dir::Cache=/tmp 2>/dev/null
-        dpkg -i /tmp/xpra-html5*.deb 2>/dev/null || true
+            "https://xpra.org/dists/bookworm/main/binary-arm64/xpra-html5-8.1-r6-1.deb" 2>&1 || true
+        dpkg -i /tmp/xpra-html5.deb 2>/dev/null || \
+        apt-get install -f -y 2>/dev/null || true
     fi
 
     touch ~/.desktop_installed
