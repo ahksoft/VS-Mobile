@@ -107,6 +107,13 @@ object MkSession {
                 }
             }
 
+            // Copy desktop launcher
+            localBinDir().child("desktop").apply {
+                createFileIfNot()
+                writeText(assets.open("desktop.sh").bufferedReader().use { it.readText() })
+                setExecutable(true)
+            }
+
 
 
             val env = mutableListOf(
