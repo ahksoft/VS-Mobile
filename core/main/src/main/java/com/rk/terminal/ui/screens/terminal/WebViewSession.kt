@@ -354,6 +354,11 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
                             fun startDesktop() {
                                 // Launch a new terminal session running 'desktop'
                                 (ctx as? android.app.Activity)?.runOnUiThread {
+                                    // Write screen size config for desktop.sh
+                                    val configFile = java.io.File(ctx.filesDir.parentFile, "local/ubuntu/root/.vnc_config")
+                                    configFile.parentFile?.mkdirs()
+                                    configFile.writeText("WIDTH=${com.rk.settings.Settings.vnc_screen_width}\nHEIGHT=${com.rk.settings.Settings.vnc_screen_height}\n")
+
                                     val sessionId = "desktop-run-${System.currentTimeMillis()}"
                                     val client = object : com.termux.terminal.TerminalSessionClient {
                                         override fun onTextChanged(s: com.termux.terminal.TerminalSession) {}

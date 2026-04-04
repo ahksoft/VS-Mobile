@@ -417,6 +417,33 @@ fun Settings(modifier: Modifier = Modifier,navController: NavController,mainActi
                     sideEffect = { Settings.vnc_show_nav_buttons = it }
                 )
 
+                var screenWidth by remember { mutableStateOf(Settings.vnc_screen_width.toString()) }
+                var screenHeight by remember { mutableStateOf(Settings.vnc_screen_height.toString()) }
+                SettingsToggle(label = "Screen Width", description = screenWidth + "px", showSwitch = false, default = false,
+                    sideEffect = { dialogValue = screenWidth; showDialog = "Screen Width" })
+                SettingsToggle(label = "Screen Height", description = screenHeight + "px", showSwitch = false, default = false,
+                    sideEffect = { dialogValue = screenHeight; showDialog = "Screen Height" })
+
+                // Handle Screen Width/Height in dialog
+                if (showDialog == "Screen Width") {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showDialog = null },
+                        title = { Text("Screen Width") },
+                        text = { androidx.compose.material3.OutlinedTextField(value = dialogValue, onValueChange = { dialogValue = it }, singleLine = true) },
+                        confirmButton = { androidx.compose.material3.TextButton(onClick = { screenWidth = dialogValue; Settings.vnc_screen_width = dialogValue.toIntOrNull() ?: 1280; showDialog = null }) { Text("OK") } },
+                        dismissButton = { androidx.compose.material3.TextButton(onClick = { showDialog = null }) { Text("Cancel") } }
+                    )
+                }
+                if (showDialog == "Screen Height") {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showDialog = null },
+                        title = { Text("Screen Height") },
+                        text = { androidx.compose.material3.OutlinedTextField(value = dialogValue, onValueChange = { dialogValue = it }, singleLine = true) },
+                        confirmButton = { androidx.compose.material3.TextButton(onClick = { screenHeight = dialogValue; Settings.vnc_screen_height = dialogValue.toIntOrNull() ?: 720; showDialog = null }) { Text("OK") } },
+                        dismissButton = { androidx.compose.material3.TextButton(onClick = { showDialog = null }) { Text("Cancel") } }
+                    )
+                }
+
                 var quality by remember { mutableStateOf(Settings.vnc_image_quality) }
                 androidx.compose.material3.Slider(
                     value = quality.toFloat(),

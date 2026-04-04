@@ -41,9 +41,20 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
 </channel>
 EOF
 
-# ── Start Xvfb ────────────────────────────────────────────────────────────────
-Xvfb :5 -screen 0 1280x720x24 -ac &
+# ── Read screen size config ───────────────────────────────────────────────────
+WIDTH=1280
+HEIGHT=720
+[ -f ~/.vnc_config ] && source ~/.vnc_config
+
+# ── Start Xvfb with RANDR for dynamic resize ─────────────────────────────────
+Xvfb :5 -screen 0 ${WIDTH}x${HEIGHT}x24 \
+    +extension RANDR \
+    +extension RENDER \
+    -ac &
 sleep 2
+
+# Set initial resolution via xrandr
+DISPLAY=:5 xrandr --fb ${WIDTH}x${HEIGHT} 2>/dev/null || true
 
 # ── Start Xfce ────────────────────────────────────────────────────────────────
 dbus-launch --exit-with-session startxfce4 &
@@ -59,6 +70,7 @@ x11vnc -display :5 \
     -noxdamage \
     -noxfixes \
     -noipv6 \
+    -xrandr resize \
     -listen 127.0.0.1 \
     -quiet &
 
