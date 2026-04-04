@@ -511,29 +511,27 @@ fun TerminalScreen(
                                 val isWebViewSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "webview"
                                 val isDesktopSession = mainActivityActivity.sessionBinder?.getService()?.currentSession?.value?.first == "desktop"
 
-                                // Desktop tab: set pendingCommand to run 'desktop', terminal view handles the rest
+                                // Desktop tab: run 'desktop' command and poll VNC every 5s
                                 LaunchedEffect(isDesktopSession) {
                                     if (isDesktopSession) {
-                                        // Only set pending command if no desktop session running yet
-                                        if (mainActivityActivity.sessionBinder?.getSession("desktop") == null) {
-                                            val initFile = com.rk.libcommons.localBinDir().child("init-host")
-                                            com.rk.libcommons.pendingCommand = com.rk.libcommons.TerminalCommand(
-                                                ubuntu = true,
-                                                shell = "/system/bin/sh",
-                                                args = arrayOf("-c", "${initFile.absolutePath} desktop"),
-                                                id = "desktop",
-                                                workingMode = WorkingMode.UBUNTU,
-                                                workingDir = com.rk.libcommons.ubuntuHomeDir().path
-                                            )
+                                        // Write 'desktop\n' to the active terminal session
+                                        kotlinx.coroutines.delay(300) // let terminal attach
+                                        val activeId = mainActivityActivity.sessionBinder
+                                            ?.getService()?.sessionList?.keys
+                                            ?.firstOrNull { it != "webview" && it != "desktop" }
+                                        val activeSession = activeId?.let {
+                                            mainActivityActivity.sessionBinder?.getSession(it)
                                         }
+                                        val cmd = "desktop\n".toByteArray()
+                                        activeSession?.write(cmd, 0, cmd.size)
 
-                                        // Poll VNC for up to 60s then launch viewer
-                                        repeat(60) {
+                                        // Poll VNC every 5s indefinitely while desktop tab is active
+                                        while (isDesktopSession) {
                                             try {
                                                 java.net.Socket().use { s ->
                                                     s.connect(java.net.InetSocketAddress(
                                                         com.rk.settings.Settings.vnc_host,
-                                                        com.rk.settings.Settings.vnc_port), 500)
+                                                        com.rk.settings.Settings.vnc_port), 1000)
                                                 }
                                                 com.gaurav.avnc.VncLauncher.launch(
                                                     context = mainActivityActivity,
@@ -543,7 +541,7 @@ fun TerminalScreen(
                                                 )
                                                 return@LaunchedEffect
                                             } catch (_: Exception) {}
-                                            kotlinx.coroutines.delay(1000)
+                                            kotlinx.coroutines.delay(5000)
                                         }
                                     }
                                 }
