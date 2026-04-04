@@ -400,7 +400,12 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
                                         context = ctx,
                                         host = com.rk.settings.Settings.vnc_host,
                                         port = com.rk.settings.Settings.vnc_port,
-                                        password = com.rk.settings.Settings.vnc_password
+                                        password = com.rk.settings.Settings.vnc_password,
+                                        gestureStyle = com.rk.settings.Settings.vnc_gesture_style,
+                                        screenOrientation = com.rk.settings.Settings.vnc_orientation,
+                                        resizeRemoteDesktop = com.rk.settings.Settings.vnc_resize_remote,
+                                        imageQuality = com.rk.settings.Settings.vnc_image_quality,
+                                        showNavButtons = com.rk.settings.Settings.vnc_show_nav_buttons
                                     )
                                 }
                             }

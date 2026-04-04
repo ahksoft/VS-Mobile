@@ -137,6 +137,26 @@ object Settings {
         get() = Preference.getString(key = "vnc_password", default = "123456")
         set(value) = Preference.setString(key = "vnc_password", value)
 
+    var vnc_gesture_style
+        get() = Preference.getString(key = "vnc_gesture_style", default = "touchpad")
+        set(value) = Preference.setString(key = "vnc_gesture_style", value)
+
+    var vnc_orientation
+        get() = Preference.getString(key = "vnc_orientation", default = "portrait")
+        set(value) = Preference.setString(key = "vnc_orientation", value)
+
+    var vnc_resize_remote
+        get() = Preference.getBoolean(key = "vnc_resize_remote", default = true)
+        set(value) = Preference.setBoolean(key = "vnc_resize_remote", value)
+
+    var vnc_image_quality
+        get() = Preference.getInt(key = "vnc_image_quality", default = 5)
+        set(value) = Preference.setInt(key = "vnc_image_quality", value)
+
+    var vnc_show_nav_buttons
+        get() = Preference.getBoolean(key = "vnc_show_nav_buttons", default = true)
+        set(value) = Preference.setBoolean(key = "vnc_show_nav_buttons", value)
+
 
 
 }

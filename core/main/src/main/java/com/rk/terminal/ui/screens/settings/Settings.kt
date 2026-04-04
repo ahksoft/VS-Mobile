@@ -374,6 +374,63 @@ fun Settings(modifier: Modifier = Modifier,navController: NavController,mainActi
                     sideEffect = { dialogValue = vncPort; showDialog = "VNC Port" })
                 SettingsToggle(label = "VNC Password", description = "••••••", showSwitch = false, default = false,
                     sideEffect = { dialogValue = vncPass; showDialog = "VNC Password" })
+
+                // VNC behavior settings
+                var gestureStyle by remember { mutableStateOf(Settings.vnc_gesture_style) }
+                SettingsToggle(
+                    label = "Gesture Style",
+                    description = gestureStyle,
+                    showSwitch = false,
+                    default = false,
+                    sideEffect = {
+                        val options = listOf("touchpad", "auto", "direct")
+                        val next = options[(options.indexOf(gestureStyle) + 1) % options.size]
+                        gestureStyle = next; Settings.vnc_gesture_style = next
+                    }
+                )
+
+                var orientation by remember { mutableStateOf(Settings.vnc_orientation) }
+                SettingsToggle(
+                    label = "Orientation",
+                    description = orientation,
+                    showSwitch = false,
+                    default = false,
+                    sideEffect = {
+                        val options = listOf("portrait", "landscape", "auto")
+                        val next = options[(options.indexOf(orientation) + 1) % options.size]
+                        orientation = next; Settings.vnc_orientation = next
+                    }
+                )
+
+                SettingsToggle(
+                    label = "Resize Remote Session to Local Window",
+                    description = "Fit desktop to screen size",
+                    showSwitch = true,
+                    default = Settings.vnc_resize_remote,
+                    sideEffect = { Settings.vnc_resize_remote = it }
+                )
+
+                SettingsToggle(
+                    label = "Always Show VNC Navigation Buttons",
+                    showSwitch = true,
+                    default = Settings.vnc_show_nav_buttons,
+                    sideEffect = { Settings.vnc_show_nav_buttons = it }
+                )
+
+                var quality by remember { mutableStateOf(Settings.vnc_image_quality) }
+                androidx.compose.material3.Slider(
+                    value = quality.toFloat(),
+                    onValueChange = { quality = it.toInt(); Settings.vnc_image_quality = it.toInt() },
+                    valueRange = 1f..9f,
+                    steps = 7,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                androidx.compose.material3.Text(
+                    "Image Quality: $quality",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 

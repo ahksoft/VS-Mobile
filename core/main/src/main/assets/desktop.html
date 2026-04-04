@@ -76,19 +76,24 @@
 
     <script>
         var polling = false;
+        var started = false;
+
+        // Auto-start polling when page loads (check if VNC already running)
+        window.onload = function() {
+            startPolling();
+        };
 
         function startDesktop() {
+            if (started) return;
+            started = true;
             document.getElementById('startBtn').disabled = true;
             document.getElementById('startBtn').textContent = 'Starting...';
             document.getElementById('spinner').style.display = 'block';
             document.getElementById('message').textContent = 'Launching desktop environment...';
 
-            // Call Android interface to run 'desktop' in a new terminal session
             if (window.DesktopInterface) {
                 window.DesktopInterface.startDesktop();
             }
-
-            startPolling();
         }
 
         function startPolling() {
@@ -99,9 +104,7 @@
 
         function poll() {
             if (!polling) return;
-            document.getElementById('message').textContent = 'Waiting for VNC server...';
 
-            // Ask Android to check VNC port
             if (window.DesktopInterface) {
                 var open = window.DesktopInterface.isVncReady();
                 if (open) {
@@ -109,7 +112,7 @@
                     return;
                 }
             }
-            setTimeout(poll, 5000);
+            setTimeout(poll, 500);
         }
 
         function onVncReady() {
