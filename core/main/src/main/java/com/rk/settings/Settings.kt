@@ -157,6 +157,11 @@ object Settings {
         get() = Preference.getBoolean(key = "vnc_show_nav_buttons", default = true)
         set(value) = Preference.setBoolean(key = "vnc_show_nav_buttons", value)
 
+    // "xfce" or "kde"
+    var desktop_environment
+        get() = Preference.getString(key = "desktop_environment", default = "xfce")
+        set(value) = Preference.setString(key = "desktop_environment", value)
+
     var vnc_screen_width
         get() = Preference.getInt(key = "vnc_screen_width", default = 720)
         set(value) = Preference.setInt(key = "vnc_screen_width", value)

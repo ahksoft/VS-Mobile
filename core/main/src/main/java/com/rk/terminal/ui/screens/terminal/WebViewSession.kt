@@ -357,7 +357,7 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
                                     // Write screen size config for desktop.sh
                                     val configFile = java.io.File(ctx.filesDir.parentFile, "local/ubuntu/root/.vnc_config")
                                     configFile.parentFile?.mkdirs()
-                                    configFile.writeText("WIDTH=${com.rk.settings.Settings.vnc_screen_width}\nHEIGHT=${com.rk.settings.Settings.vnc_screen_height}\n")
+                                    configFile.writeText("WIDTH=${com.rk.settings.Settings.vnc_screen_width}\nHEIGHT=${com.rk.settings.Settings.vnc_screen_height}\nDE=${com.rk.settings.Settings.desktop_environment}\n")
 
                                     val sessionId = "desktop-run-${System.currentTimeMillis()}"
                                     val client = object : com.termux.terminal.TerminalSessionClient {

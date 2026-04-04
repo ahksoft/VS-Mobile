@@ -1,38 +1,57 @@
 #!/bin/bash
-# Start Xfce4 desktop with x11vnc for VNC access
-# Tap Desktop tab in VS Mobile to open the VNC viewer
+# Desktop environment launcher for VS Mobile
+# Supports XFCE4 (xubuntu-desktop) and KDE Plasma (kubuntu-desktop)
 
 VNC_PORT=5905
 VNC_PASS="123456"
 
-# ── Install if needed ─────────────────────────────────────────────────────────
-if ! command -v xfce4-session &>/dev/null || ! command -v x11vnc &>/dev/null; then
-    echo "[*] Installing Xfce4 + x11vnc..."
-    mkdir -p /etc/apt/preferences.d
-    cat > /etc/apt/preferences.d/nosnap.pref << 'EOF'
+# ── Read config ───────────────────────────────────────────────────────────────
+WIDTH=720
+HEIGHT=1600
+DE=xfce
+[ -f ~/.vnc_config ] && source ~/.vnc_config
+
+# ── Block snap ────────────────────────────────────────────────────────────────
+mkdir -p /etc/apt/preferences.d
+cat > /etc/apt/preferences.d/nosnap.pref << 'EOF'
 Package: snapd
 Pin: release a=*
 Pin-Priority: -10
 EOF
+
+# ── Install desktop environment if needed ────────────────────────────────────
+install_flag=~/.desktop_installed_${DE}
+
+if [ ! -f "$install_flag" ]; then
+    echo "[*] Installing ${DE} desktop environment..."
     DEBIAN_FRONTEND=noninteractive apt update -qq
-    DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-        xfce4 xfce4-terminal x11vnc xvfb dbus-x11 xfonts-base 2>/dev/null
-    echo "[✓] Installed"
+
+    if [ "$DE" = "kde" ]; then
+        echo "[*] Installing KDE Plasma (kubuntu-desktop)..."
+        DEBIAN_FRONTEND=noninteractive apt install -y kubuntu-desktop x11vnc xvfb dbus-x11 2>/dev/null
+    else
+        echo "[*] Installing XFCE4 (xubuntu-desktop)..."
+        DEBIAN_FRONTEND=noninteractive apt install -y xubuntu-desktop x11vnc xvfb dbus-x11 2>/dev/null
+    fi
+
+    touch "$install_flag"
+    echo "[✓] ${DE} installed"
 fi
 
 # ── Kill existing sessions ────────────────────────────────────────────────────
 pkill -f "Xvfb :5" 2>/dev/null
 pkill -f "x11vnc" 2>/dev/null
-pkill -f "xfce4-session" 2>/dev/null
+pkill -f "xfce4-session\|startplasma\|kwin\|plasmashell" 2>/dev/null
 sleep 1
 
 export NO_AT_BRIDGE=1
 export LIBGL_ALWAYS_SOFTWARE=1
 export DISPLAY=:5
 
-# Disable compositing
-mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
-cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
+# ── Disable compositing for XFCE ─────────────────────────────────────────────
+if [ "$DE" = "xfce" ]; then
+    mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
+    cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfwm4" version="1.0">
   <property name="general" type="empty">
@@ -40,24 +59,28 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
   </property>
 </channel>
 EOF
+fi
 
-# ── Read screen size config ───────────────────────────────────────────────────
-WIDTH=720
-HEIGHT=1600
-[ -f ~/.vnc_config ] && source ~/.vnc_config
-
-# ── Start Xvfb with RANDR for dynamic resize ─────────────────────────────────
+# ── Start Xvfb ────────────────────────────────────────────────────────────────
 Xvfb :5 -screen 0 ${WIDTH}x${HEIGHT}x24 \
     +extension RANDR \
     +extension RENDER \
     -ac &
 sleep 2
 
-# Set initial resolution via xrandr
 DISPLAY=:5 xrandr --fb ${WIDTH}x${HEIGHT} 2>/dev/null || true
 
-# ── Start Xfce ────────────────────────────────────────────────────────────────
-dbus-launch --exit-with-session startxfce4 &
+# ── Start dbus ────────────────────────────────────────────────────────────────
+eval $(dbus-launch --sh-syntax 2>/dev/null) || true
+
+# ── Launch desktop session ────────────────────────────────────────────────────
+if [ "$DE" = "kde" ]; then
+    echo "[*] Starting KDE Plasma..."
+    DISPLAY=:5 startplasma-x11 &
+else
+    echo "[*] Starting XFCE4..."
+    DISPLAY=:5 startxfce4 &
+fi
 sleep 4
 
 # ── Start x11vnc ─────────────────────────────────────────────────────────────
@@ -75,6 +98,6 @@ x11vnc -display :5 \
     -quiet &
 
 sleep 1
-echo "[✓] Desktop running on VNC port $VNC_PORT (password: $VNC_PASS)"
-echo "Tap Desktop tab in VS Mobile to connect"
+echo "[✓] ${DE} desktop running on VNC port $VNC_PORT"
+echo "Switching back to Desktop tab..."
 wait

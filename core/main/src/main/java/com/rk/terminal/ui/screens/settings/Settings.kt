@@ -309,7 +309,18 @@ fun Settings(modifier: Modifier = Modifier,navController: NavController,mainActi
 
         // Desktop Environment settings
         var desktopEnabled by remember { mutableStateOf(Settings.desktop_enabled) }
+        var desktopEnv by remember { mutableStateOf(Settings.desktop_environment) }
         PreferenceGroup(heading = "Desktop Environment") {
+            SettingsToggle(
+                label = "Desktop Environment",
+                description = when(desktopEnv) { "kde" -> "KDE Plasma (kubuntu-desktop)"; else -> "XFCE4 (xubuntu-desktop)" },
+                showSwitch = false,
+                default = false,
+                sideEffect = {
+                    val next = if (desktopEnv == "xfce") "kde" else "xfce"
+                    desktopEnv = next; Settings.desktop_environment = next
+                }
+            )
             SettingsToggle(
                 label = "Enable Desktop Environment",
                 description = "Show Desktop session tab (requires Xfce4 + x11vnc)",
