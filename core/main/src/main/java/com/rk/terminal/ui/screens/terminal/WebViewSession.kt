@@ -383,6 +383,16 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
                                         sessionId, client, mainActivity, WorkingMode.UBUNTU)
                                     val cmd = "desktop\n".toByteArray()
                                     session?.write(cmd, 0, cmd.size)
+
+                                    // Switch to terminal session immediately so user sees output
+                                    mainActivity.sessionBinder?.getService()?.currentSession?.value =
+                                        Pair(sessionId, WorkingMode.UBUNTU)
+
+                                    // After 5s switch back to desktop (WebView) session
+                                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                        mainActivity.sessionBinder?.getService()?.currentSession?.value =
+                                            Pair("desktop", -2)
+                                    }, 5000)
                                 }
                             }
 
