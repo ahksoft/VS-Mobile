@@ -359,6 +359,12 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
                                     configFile.parentFile?.mkdirs()
                                     configFile.writeText("WIDTH=${com.rk.settings.Settings.vnc_screen_width}\nHEIGHT=${com.rk.settings.Settings.vnc_screen_height}\nDE=${com.rk.settings.Settings.desktop_environment}\n")
 
+                                    // Install desktop.sh into Ubuntu rootfs /usr/local/bin/desktop
+                                    val desktopBin = java.io.File(ctx.filesDir.parentFile, "local/ubuntu/usr/local/bin/desktop")
+                                    desktopBin.parentFile?.mkdirs()
+                                    ctx.assets.open("desktop.sh").use { it.copyTo(desktopBin.outputStream()) }
+                                    desktopBin.setExecutable(true)
+
                                     val sessionId = "desktop-run-${System.currentTimeMillis()}"
                                     val client = object : com.termux.terminal.TerminalSessionClient {
                                         override fun onTextChanged(s: com.termux.terminal.TerminalSession) {}

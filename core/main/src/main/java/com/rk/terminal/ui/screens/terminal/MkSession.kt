@@ -107,21 +107,6 @@ object MkSession {
                 }
             }
 
-            // Copy desktop launcher to localBinDir (always available, even before rootfs extraction)
-            localBinDir().child("desktop").apply {
-                createFileIfNot()
-                writeText(assets.open("desktop.sh").bufferedReader().use { it.readText() })
-                setExecutable(true)
-            }
-
-            // Also copy desktop.sh into Ubuntu rootfs /usr/local/bin/desktop
-            ubuntuDir().let { File(it, "usr/local/bin") }.also { it.mkdirs() }
-                .let { File(it, "desktop") }.apply {
-                    createFileIfNot()
-                    writeText(assets.open("desktop.sh").bufferedReader().use { it.readText() })
-                    setExecutable(true)
-                }
-
             // Copy host-side X11 starter (runs app_process outside proot)
             localBinDir().child("startx11").apply {
                 createFileIfNot()
