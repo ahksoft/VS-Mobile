@@ -23,8 +23,17 @@ class LauncherActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
         val isFirstLaunch = prefs.getBoolean("is_first_launch", true)
         val codeServerExtracted = prefs.getBoolean("code_server_extracted", false)
-        
-        if (isFirstLaunch) {
+
+        // Also check if Ubuntu rootfs is actually extracted
+        val ubuntuExtracted = com.rk.libcommons.ubuntuDir().let { dir ->
+            dir.exists() && java.io.File(dir, "etc").exists() && java.io.File(dir, "bin").exists()
+        }
+
+        if (isFirstLaunch || !ubuntuExtracted) {
+            // Reset flags if rootfs is missing so extraction runs again
+            if (!ubuntuExtracted) {
+                prefs.edit().putBoolean("is_first_launch", true).putBoolean("code_server_extracted", false).apply()
+            }
             // First launch - check if code-server needs extraction
             if (!codeServerExtracted && !CodeServerInstaller.isCodeServerInstalled(this)) {
                 // Show extraction dialog

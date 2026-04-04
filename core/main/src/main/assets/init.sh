@@ -3,6 +3,9 @@ set -e  # Exit immediately on Failure
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/share/bin:/usr/share/sbin:/usr/local/bin:/usr/local/sbin:/system/bin:/system/xbin
 export HOME=/root
 
+# Ensure basic dirs exist (rootfs may be freshly extracted)
+mkdir -p /etc /tmp /root 2>/dev/null || true
+
 if [ ! -s /etc/resolv.conf ]; then
     echo "nameserver 8.8.8.8" > /etc/resolv.conf
     echo "nameserver 1.1.1.1" >> /etc/resolv.conf
