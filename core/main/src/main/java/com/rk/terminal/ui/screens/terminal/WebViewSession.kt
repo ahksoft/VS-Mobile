@@ -347,6 +347,64 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
                                 }
                             }
                         }, "OfflinePageInterface")
+
+                        // Desktop page interface
+                        addJavascriptInterface(object {
+                            @android.webkit.JavascriptInterface
+                            fun startDesktop() {
+                                // Launch a new terminal session running 'desktop'
+                                (ctx as? android.app.Activity)?.runOnUiThread {
+                                    val sessionId = "desktop-run-${System.currentTimeMillis()}"
+                                    val client = object : com.termux.terminal.TerminalSessionClient {
+                                        override fun onTextChanged(s: com.termux.terminal.TerminalSession) {}
+                                        override fun onTitleChanged(s: com.termux.terminal.TerminalSession) {}
+                                        override fun onSessionFinished(s: com.termux.terminal.TerminalSession) {}
+                                        override fun onCopyTextToClipboard(s: com.termux.terminal.TerminalSession, t: String) {}
+                                        override fun onPasteTextFromClipboard(s: com.termux.terminal.TerminalSession?) {}
+                                        override fun onBell(s: com.termux.terminal.TerminalSession) {}
+                                        override fun onColorsChanged(s: com.termux.terminal.TerminalSession) {}
+                                        override fun onTerminalCursorStateChange(state: Boolean) {}
+                                        override fun setTerminalShellPid(s: com.termux.terminal.TerminalSession, pid: Int) {}
+                                        override fun getTerminalCursorStyle(): Int? = null
+                                        override fun logError(tag: String, msg: String) {}
+                                        override fun logWarn(tag: String, msg: String) {}
+                                        override fun logInfo(tag: String, msg: String) {}
+                                        override fun logDebug(tag: String, msg: String) {}
+                                        override fun logVerbose(tag: String, msg: String) {}
+                                        override fun logStackTraceWithMessage(tag: String, msg: String, e: Exception) {}
+                                        override fun logStackTrace(tag: String, e: Exception) {}
+                                    }
+                                    val session = mainActivity.sessionBinder?.createSession(
+                                        sessionId, client, mainActivity, WorkingMode.UBUNTU)
+                                    val cmd = "desktop\n".toByteArray()
+                                    session?.write(cmd, 0, cmd.size)
+                                }
+                            }
+
+                            @android.webkit.JavascriptInterface
+                            fun isVncReady(): Boolean {
+                                return try {
+                                    java.net.Socket().use { s ->
+                                        s.connect(java.net.InetSocketAddress(
+                                            com.rk.settings.Settings.vnc_host,
+                                            com.rk.settings.Settings.vnc_port), 1000)
+                                    }
+                                    true
+                                } catch (_: Exception) { false }
+                            }
+
+                            @android.webkit.JavascriptInterface
+                            fun launchVnc() {
+                                (ctx as? android.app.Activity)?.runOnUiThread {
+                                    com.gaurav.avnc.VncLauncher.launch(
+                                        context = ctx,
+                                        host = com.rk.settings.Settings.vnc_host,
+                                        port = com.rk.settings.Settings.vnc_port,
+                                        password = com.rk.settings.Settings.vnc_password
+                                    )
+                                }
+                            }
+                        }, "DesktopInterface")
                         
                         setLayerType(View.LAYER_TYPE_HARDWARE, null)
                         

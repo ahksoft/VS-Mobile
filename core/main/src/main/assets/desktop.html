@@ -2,108 +2,125 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Desktop</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1e1e1e;
             color: #e0e0e0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            padding: 20px;
         }
-        #status { text-align: center; padding: 20px; }
-        #status h2 { margin-bottom: 10px; color: #fff; }
-        #status p { color: #888; margin-bottom: 20px; }
+        .container { text-align: center; max-width: 500px; }
+        .icon { margin-bottom: 20px; }
+        .icon img { width: 80px; height: 80px; border-radius: 12px; opacity: 0.85; }
+        h1 { font-size: 28px; margin-bottom: 10px; color: #fff; }
+        p { font-size: 16px; line-height: 1.6; color: #b0b0b0; margin-bottom: 30px; }
         .btn {
             background: #007acc;
             color: white;
             border: none;
-            padding: 12px 28px;
-            font-size: 15px;
+            padding: 12px 30px;
+            font-size: 16px;
             border-radius: 6px;
             cursor: pointer;
             margin: 5px;
+            transition: background 0.3s;
         }
         .btn:hover { background: #005a9e; }
-        #novnc-frame {
-            display: none;
-            width: 100vw;
-            height: 100vh;
-            border: none;
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .info {
+            margin-top: 30px;
+            padding: 15px;
+            background: #2d2d2d;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #888;
         }
+        .hidden { display: none; }
         .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #333;
+            width: 32px; height: 32px;
+            border: 3px solid #333;
             border-top-color: #007acc;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin: 0 auto 15px;
+            display: none;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .hidden { display: none; }
+        .dev-info { margin-top: 40px; font-size: 12px; color: #555; }
+        .dev-info a { color: #007acc; text-decoration: none; }
     </style>
 </head>
 <body>
-    <div id="status">
+    <div class="container">
+        <div class="icon"><img src="file:///android_asset/vsm.png"></div>
+        <h1 id="title">Desktop Environment</h1>
+        <p id="message">Start the desktop environment to connect via VNC.</p>
         <div class="spinner" id="spinner"></div>
-        <h2 id="title">Starting Desktop...</h2>
-        <p id="msg">Launching Xfce desktop environment</p>
-        <button class="btn hidden" id="openBtn" onclick="openDesktop()">Open Desktop</button>
-        <button class="btn hidden" id="retryBtn" onclick="location.reload()">Retry</button>
+        <button class="btn btn-success" id="startBtn" onclick="startDesktop()">Start Desktop</button>
+        <div class="info" id="infoBox">
+            <strong>To start manually:</strong><br>
+            Run <code>desktop</code> in Terminal
+        </div>
+        <div class="dev-info">
+            Dev: Abir Hasan AHK &nbsp;|&nbsp; <a href="https://github.com/ahksoft">github.com/ahksoft</a>
+        </div>
     </div>
-    <iframe id="novnc-frame" src="" allow="clipboard-read; clipboard-write; fullscreen" allowfullscreen></iframe>
 
     <script>
-        let attempts = 0;
+        var polling = false;
 
-        function openDesktop() {
-            document.getElementById('status').style.display = 'none';
-            const frame = document.getElementById('novnc-frame');
-            frame.style.display = 'block';
-            frame.src = 'http://localhost:8080/display/1';
-        }
+        function startDesktop() {
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('startBtn').textContent = 'Starting...';
+            document.getElementById('spinner').style.display = 'block';
+            document.getElementById('message').textContent = 'Launching desktop environment...';
 
-        function checkServer() {
-            fetch('http://localhost:8080/displays')
-                .then(r => r.json())
-                .then(displays => {
-                    if (displays && displays.length > 0) {
-                        document.getElementById('spinner').classList.add('hidden');
-                        document.getElementById('title').textContent = 'Desktop Ready';
-                        document.getElementById('msg').textContent = 'Xfce desktop is running';
-                        document.getElementById('openBtn').classList.remove('hidden');
-                        setTimeout(openDesktop, 500);
-                    } else {
-                        // Create display
-                        fetch('http://localhost:8080/display', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({width: 1280, height: 800})
-                        }).catch(() => {}).finally(() => setTimeout(checkServer, 1500));
-                    }
-                })
-                .catch(() => retry());
-        }
-
-        function retry() {
-            attempts++;
-            if (attempts > 60) {
-                document.getElementById('spinner').classList.add('hidden');
-                document.getElementById('title').textContent = 'Failed to start';
-                document.getElementById('msg').textContent = 'Run "desktop" in terminal to start manually';
-                document.getElementById('retryBtn').classList.remove('hidden');
-                return;
+            // Call Android interface to run 'desktop' in a new terminal session
+            if (window.DesktopInterface) {
+                window.DesktopInterface.startDesktop();
             }
-            document.getElementById('msg').textContent = `Waiting for desktop... (${attempts}s)`;
-            setTimeout(checkServer, 1000);
+
+            startPolling();
         }
 
-        setTimeout(checkServer, 2000);
+        function startPolling() {
+            if (polling) return;
+            polling = true;
+            poll();
+        }
+
+        function poll() {
+            if (!polling) return;
+            document.getElementById('message').textContent = 'Waiting for VNC server...';
+
+            // Ask Android to check VNC port
+            if (window.DesktopInterface) {
+                var open = window.DesktopInterface.isVncReady();
+                if (open) {
+                    onVncReady();
+                    return;
+                }
+            }
+            setTimeout(poll, 5000);
+        }
+
+        function onVncReady() {
+            polling = false;
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('title').textContent = 'Desktop Ready';
+            document.getElementById('message').textContent = 'Connecting to desktop...';
+            if (window.DesktopInterface) {
+                window.DesktopInterface.launchVnc();
+            }
+        }
     </script>
 </body>
 </html>

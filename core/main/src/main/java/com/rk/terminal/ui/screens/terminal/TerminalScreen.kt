@@ -545,8 +545,6 @@ fun TerminalScreen(
                                         }
                                     }
                                 }
-
-                                // Always keep WebView in composition, just hide it
                                 Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                                     // VS Code WebView
                                     Box(
@@ -564,8 +562,25 @@ fun TerminalScreen(
                                         }
                                     }
 
-                                    // Terminal - only rendered when active (including desktop session)
-                                    if (!isWebViewSession) {
+                                    // Desktop WebView - shows desktop.html
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .alpha(if (isDesktopSession) 1f else 0f)
+                                            .zIndex(if (isDesktopSession) 1f else -1f)
+                                    ) {
+                                        androidx.compose.runtime.key("desktop_session") {
+                                            WebViewSession(
+                                                modifier = Modifier.fillMaxSize(),
+                                                mainActivity = mainActivityActivity,
+                                                reloadTrigger = webViewReloadTrigger,
+                                                overrideUrl = "file:///android_asset/desktop.html"
+                                            )
+                                        }
+                                    }
+
+                                    // Terminal - only rendered when active (not webview or desktop)
+                                    if (!isWebViewSession && !isDesktopSession) {
                                         Column(modifier = Modifier.fillMaxSize()) {
                                 AndroidView(
                                     factory = { context ->
