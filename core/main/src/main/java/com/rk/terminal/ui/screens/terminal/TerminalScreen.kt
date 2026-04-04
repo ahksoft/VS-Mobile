@@ -720,7 +720,7 @@ fun TerminalScreen(
                                 } // end if (!isWebViewSession)
                                 } // end Box
                                 
-                                if (showVirtualKeys.value && !isWebViewSession){
+                                if (showVirtualKeys.value && !isWebViewSession && !isDesktopSession){
                                     val pagerState = rememberPagerState(pageCount = { 2 })
                                     val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
                                     HorizontalPager(

@@ -381,8 +381,14 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
                                     }
                                     val session = mainActivity.sessionBinder?.createSession(
                                         sessionId, client, mainActivity, WorkingMode.UBUNTU)
+                                    // Write desktop command immediately and again after 1s to ensure it runs
                                     val cmd = "desktop\n".toByteArray()
                                     session?.write(cmd, 0, cmd.size)
+                                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                        if (session?.isRunning == true) {
+                                            session.write(cmd, 0, cmd.size)
+                                        }
+                                    }, 1000)
 
                                     // Switch to terminal session immediately so user sees output
                                     mainActivity.sessionBinder?.getService()?.currentSession?.value =
