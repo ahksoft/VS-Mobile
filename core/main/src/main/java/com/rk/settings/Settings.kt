@@ -158,11 +158,11 @@ object Settings {
         set(value) = Preference.setBoolean(key = "vnc_show_nav_buttons", value)
 
     var vnc_screen_width
-        get() = Preference.getInt(key = "vnc_screen_width", default = 1280)
+        get() = Preference.getInt(key = "vnc_screen_width", default = 720)
         set(value) = Preference.setInt(key = "vnc_screen_width", value)
 
     var vnc_screen_height
-        get() = Preference.getInt(key = "vnc_screen_height", default = 720)
+        get() = Preference.getInt(key = "vnc_screen_height", default = 1600)
         set(value) = Preference.setInt(key = "vnc_screen_height", value)
 
 

@@ -42,8 +42,8 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
 EOF
 
 # ── Read screen size config ───────────────────────────────────────────────────
-WIDTH=1280
-HEIGHT=720
+WIDTH=720
+HEIGHT=1600
 [ -f ~/.vnc_config ] && source ~/.vnc_config
 
 # ── Start Xvfb with RANDR for dynamic resize ─────────────────────────────────
