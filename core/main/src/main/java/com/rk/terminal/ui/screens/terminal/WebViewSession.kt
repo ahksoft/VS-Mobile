@@ -404,14 +404,17 @@ fun WebViewSession(modifier: Modifier = Modifier, mainActivity: MainActivity, re
 
                             @android.webkit.JavascriptInterface
                             fun isVncReady(): Boolean {
+                                // JS interface runs on WebView thread - suppress StrictMode for socket
+                                val old = android.os.StrictMode.allowThreadDiskReads()
                                 return try {
-                                    java.net.Socket().use { s ->
-                                        s.connect(java.net.InetSocketAddress(
-                                            com.rk.settings.Settings.vnc_host,
-                                            com.rk.settings.Settings.vnc_port), 1000)
-                                    }
+                                    val s = java.net.Socket()
+                                    s.connect(java.net.InetSocketAddress(
+                                        com.rk.settings.Settings.vnc_host,
+                                        com.rk.settings.Settings.vnc_port), 500)
+                                    s.close()
                                     true
                                 } catch (_: Exception) { false }
+                                finally { android.os.StrictMode.setThreadPolicy(old) }
                             }
 
                             @android.webkit.JavascriptInterface
